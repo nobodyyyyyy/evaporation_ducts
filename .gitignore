@@ -3,4 +3,4 @@ venv/*
 *.pyc
 data/__pycache__/algorithm.cpython-37.pyc
 .idea/workspace.xml
-/new_data
+/new/data/AEM
