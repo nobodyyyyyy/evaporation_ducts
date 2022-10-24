@@ -1,0 +1,337 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0">
+        <title>船载大气波导分析软件</title>
+		
+		<!-- Favicon -->
+        <link rel="shortcut icon" type="image/x-icon" href="static/assets/img/favicon.png">
+		
+		<!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="static/assets/css/bootstrap.min.css">
+		
+		<!-- Fontawesome CSS -->
+        <link rel="stylesheet" href="static/assets/css/font-awesome.min.css">
+		
+		<!-- Feathericon CSS -->
+        <link rel="stylesheet" href="static/assets/css/feathericon.min.css">
+		
+		<link rel="stylesheet" href="static/assets/plugins/morris/morris.css">
+		
+		<!-- Main CSS -->
+		<link rel="stylesheet" href="static/assets/css/style.css">
+		<!--[if lt IE 9]>
+			<script src="assets/js/html5shiv.min.js"></script>
+			<script src="assets/js/respond.min.js"></script>
+		<![endif]-->
+
+<script src="static/js/jquery.min.js"></script>
+<script src="static/js/jquery.nicescroll.min.js"></script>
+<script src="static/js/echarts.js"></script>
+<script src="static/js/dialog.js"></script>
+
+    </head>
+    <body>
+	
+		<!-- Main Wrapper -->
+        <div class="main-wrapper">
+		
+			<!-- Header -->
+            <div class="header">
+			
+				<!-- Logo -->
+                <div class="header-left">
+                    <a href="index.html" class="logo">
+						<!--<img src="static/assets/img/R-C.jpg" alt="Logo">-->
+					</a>
+					<a href="index.html" class="logo logo-small">
+						<img src="static/assets/img/logo-small.png" alt="Logo" width="30" height="30">
+					</a>
+                </div>
+				<!-- /Logo -->
+				
+				<a href="javascript:void(0);" id="toggle_btn">
+					<i class="fe fe-text-align-left"></i>
+				</a>
+				
+				<div class="top-nav-search">
+
+				</div>
+				
+				<!-- Mobile Menu Toggle -->
+				<a class="mobile_btn" id="mobile_btn">
+					<i class="fa fa-bars"></i>
+				</a>
+				<!-- /Mobile Menu Toggle -->
+				
+				<ul class="nav user-menu" style="margin-right: 1%; margin-left: 1%;">
+					<li class="nav-item dropdown noti-dropdown">
+						<a onclick="transHeader()" href="#" class="dropdown-toggle nav-link" data-toggle="dropdown" title="大气波导现象解释">
+							<i class="fe fe-info"></i>
+						</a>
+					</li>
+				</ul>
+				
+            </div>
+			<!-- /Header -->
+			
+			<!-- Sidebar -->
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-inner slimscroll">
+					<div id="sidebar-menu" class="sidebar-menu" style="background: #293c55;">
+						<ul>
+							<li>
+								<a href="index"><font color="#FFFFF0">首页</font></a>
+							</li>
+							<li>
+								<a href="#"><font color="#FFFFF0">实时波导分析计算</font></a>
+							</li>
+							<li><a href="evaporation" style="background:#9ca8b8;"><font color="#293c55"> ● 蒸发波导诊断</font></a></li>
+							<li><a href="futureheight"><font color="#CCCCCC">&ensp; 未来波导高度预测</font></a></li>
+							<li>
+								<a href="#"><font color="#FFFFF0">历史文件波导分析</font></a>
+							</li>
+							<li>
+								<a href="surface-evap"><font color="#CCCCCC">&ensp;表面/悬空波导诊断</font></a>
+							</li>
+							<li><a href="electromagenetic"><font color="#CCCCCC">&ensp; 电磁波雷达损耗计算</font></a></li>
+						</ul>
+					</div>
+                </div>
+            </div>
+			<!-- /Sidebar -->
+
+
+			<!-- jQuery -->
+			<script src="static/assets/js/jquery.min.js"></script>
+		
+			<!-- Bootstrap Core JS -->
+			<script src="static/assets/js/popper.min.js"></script>
+			<script src="static/assets/js/bootstrap.min.js"></script>
+			
+			<!-- Slimscroll JS -->
+			<script src="static/assets/plugins/slimscroll/jquery.slimscroll.min.js"></script>
+			
+			<script src="static/assets/plugins/raphael/raphael.min.js"></script>    
+			<script src="static/assets/plugins/morris/morris.min.js"></script>
+<!--			<script src="static/assets/js/chart.morris.js"></script>-->
+			
+			<!-- Custom JS -->
+			<script src="static/assets/js/script.js"></script>
+			<!-- Page Wrapper -->
+            <div class="page-wrapper">
+			
+                <div class="content container-fluid">
+			
+					<!-- Page Header -->
+					<div class="page-header">
+						<div class="row">
+							<div class="col-sm-12">
+								<h3 class="page-title">蒸发波导诊断页面</h3>
+								<ul class="breadcrumb">
+									<li class="breadcrumb-item active">当前所在地理位置：</li><li id="location"></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					<!-- /Page Header -->
+
+					<div class="row" id="basic-row">
+						<div class="col-xl-3 col-sm-6 col-12">
+							<div class="card">
+								<div class="card-body" style="background-color:#7b8b6f">
+									<div class="dash-widget-header">
+										<span class="dash-widget-icon text-primary border-primary">
+											<i class="fa fa-thermometer"></i>
+										</span>
+										<div class="dash-count" id="whitefont">
+											<h3 id="tem">278K</h3>
+										</div>
+									</div>
+									<div class="dash-widget-info">
+										<h6 class="text-muted">大气温度</h6>
+										<div class="progress progress-sm">
+											<div class="progress-bar bg-primary w-50"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="col-xl-3 col-sm-6 col-12">
+							<div class="card">
+								<div class="card-body" style="background-color:#965454">
+									<div class="dash-widget-header">
+										<span class="dash-widget-icon text-success">
+											<i class="fa fa-umbrella"></i>
+										</span>
+										<div class="dash-count" id="whitefont">
+											<h3 id='hum'>97%</h3>
+										</div>
+									</div>
+									<div class="dash-widget-info">
+										
+										<h6 class="text-muted">大气湿度</h6>
+										<div class="progress progress-sm">
+											<div class="progress-bar bg-success w-100" style="background-color: #FDC839 !important"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="col-xl-3 col-sm-6 col-12">
+							<div class="card">
+								<div class="card-body" style="background-color:#c7b8a1">
+									<div class="dash-widget-header">
+										<span class="dash-widget-icon text-danger ">
+											<i class="fe fe-clock"></i>
+										</span>
+										<div class="dash-count" id="whitefont">
+											<h3 id='press'>485hpa</h3>
+										</div>
+									</div>
+									<div class="dash-widget-info">
+										
+										<h6 class="text-muted">大气压强</h6>
+										<div class="progress progress-sm">
+											<div class="progress-bar bg-warning w-50"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="col-xl-3 col-sm-6 col-12">
+							<div class="card">
+								<div class="card-body" style="background-color:#8696a7">
+									<div class="dash-widget-header">
+										<span class="dash-widget-icon text-warning ">
+											<i class="fe fe-frying-pan"></i>
+										</span>
+										<div class="dash-count" id="whitefont">
+											<h3 id='wind'>50m/s</h3>
+										</div>
+									</div>
+									<div class="dash-widget-info">
+										
+										<h6 class="text-muted">经纬风速</h6>
+										<div class="progress progress-sm">
+											<div class="progress-bar bg-warning w-50">
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div> 
+                                        <script src="static/js/ductInforContent.js"></script>
+					<div class="row" >
+						<div class="col-md-12 col-lg-6" >
+						
+							<!-- Sales Chart -->
+							<div class="card card-chart" >
+								<div class="card-header" >
+									<h4 class="card-title">蒸发波导诊断信息</h4>
+								</div>
+								<div id="chart-left" style="height: 500px;">
+									
+								</div>	
+							</div>
+						</div>
+
+						<div class="col-md-12 col-lg-6">
+							<div class="card card-chart" >
+								<div class="card-header" >
+									<h4 class="card-title">历史蒸发波导信息查询
+										<button class="btn btn-secondary btn-lg" id="research" onclick="hidden_his()" style="float: right; height: 30px; padding-top: 0px; padding-bottom: 0px; display: none">重新查询</button>
+									</h4>
+								</div>
+								<div id="chart-history" style="height: 500px;display: none;">
+								</div>
+								<div class="card-body" id="search-his">
+									<form id="history_form" action="/history" method="post">
+										<div class="form-group row">
+											<label class="col-form-label col-md-2" id="time_select" style="flex: 0 0 100%;max-width: 100%;margin-right: 5px;margin-left: 25px;padding-top: 2%;font-size: 20px;color:#0c98e9;">时间区间选择</label>
+											<input type="text" id="starttime" name="starttime" style="display: none" value=" ">
+											<input type="text" id="endtime" name="endtime" style="display: none" value=" ">
+											<div class="flex-div" style="margin-left: 20%;">
+												<div id='daterange' class="dateinputer">
+	
+												</div>
+											</div>
+										</div>
+										<div class="input-group-append" style="float: right;">
+											<button id="his_btn" class="btn btn-primary" type="submit" >查询</button>
+										</div>
+									</form>
+<!--								<iframe id="iframe" name="iframe" style="display:none;"></iframe>-->
+								</div>
+							</div>
+						</div>	
+					</div>
+					<div class="row">
+						</div>
+						<div class="col-md-12">
+							<div class="card card-chart">
+								<div class="card-header">
+									<h4 class="card-title">操作记录</h4>
+								</div>
+								<div class="card-body">
+								
+									<div id="boxscroll2">
+										  <div id="contentscroll2">
+											<p>正等待连接服务器获取资源...</p>
+										  </div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>	
+				</div>			
+			</div>
+			<!-- /Page Wrapper -->
+        </div>	
+		<!-- /Main Wrapper -->	
+
+
+
+	</body>
+	<script src="static/assets/js/jquery.min.js"></script>
+	<script src="static/js/moment.js"></script>
+	<script src="static/js/xndatepicker.js"></script>
+	<script type="text/javascript" src="static/js/socket.io.min.js"></script>
+	<script type="text/javascript">
+		let MeteoData = {{MeteoData|tojson}}
+		let Evap = {{Evap|tojson}}
+		let Requ = {{ Request|tojson }}
+		let RequestTime = {{RequestTime|tojson}} 
+	</script>
+	<script type="text/javascript">
+		var startTime;
+		var endTime;
+		var daterange=new XNDatepicker($("#daterange"),{
+			type:'daterange',//year/month/date/multiple/ week/datetime/datetimerange/ daterange/monthrange/yearrange
+			multipleDates:[],//当为多选日期类型时的初始值
+			startTime:'',
+			maxDate:'',
+			separator:' 到 ',
+			showType:'modal',
+			linkPanels:false,//面板联动
+			showClear:true,//是否显示清除按钮
+			autoConfirm:true,
+			showShortKeys:true,
+			autoFillDate:true,//自动变更element里面的值
+		},function(data){
+			console.log(data)
+			startTime = data.startTime._i.split(" ")[0];
+			endTime = data.endTime._i.split(" ")[0];
+			console.log(startTime)
+			console.log(endTime)
+			document.getElementById("starttime").value = startTime;
+			document.getElementById("endtime").value = endTime;
+		},)
+	</script>
+	<script src="static/chart/evaporation/chart-left.js"></script>
+	<script src="static/js/communication.js"></script>
+	<script src="static/chart/evaporation/chart-history.js"></script>
+	<script type="text/javascript" src="static/js/commonInfor.js"></script>
+</html>

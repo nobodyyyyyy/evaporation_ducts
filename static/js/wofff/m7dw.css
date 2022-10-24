@@ -1,0 +1,27 @@
+@font-face {font-family: "iconfont-xndatepicker";
+  src: url('./font_2213760_as9380qm7dw.eot'); /* IE9 */
+  src: url('./font_2213760_as9380qm7dw.eot') format('embedded-opentype'), /* IE6-IE8 */
+  url('./dontknow') format('woff'),
+  url('./font_2213760_as9380qm7dw.ttf') format('truetype'), /* chrome, firefox, opera, Safari, Android, iOS 4.2+ */
+  url('./font_2213760_as9380qm7dw.svg') format('svg'); /* iOS 4.1- */
+}
+
+.iconfont-xndatepicker {
+  font-family: "iconfont-xndatepicker" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-xndatepickerrili:before {
+  content: "\e673";
+}
+
+.icon-xndatepickerprev1:before {
+  content: "\e600";
+}
+
+.icon-xndatepickerprev:before {
+  content: "\e601";
+}

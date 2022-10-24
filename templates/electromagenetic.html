@@ -1,0 +1,527 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0">
+        <title>船载大气波导分析软件</title>
+		
+		<!-- Favicon -->
+        <link rel="shortcut icon" type="image/x-icon" href="static/assets/img/favicon.png">
+		
+		<!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="static/assets/css/bootstrap.min.css">
+		
+		<!-- Fontawesome CSS -->
+        <link rel="stylesheet" href="static/assets/css/font-awesome.min.css">
+		
+		<!-- Feathericon CSS -->
+        <link rel="stylesheet" href="static/assets/css/feathericon.min.css">
+		
+		<link rel="stylesheet" href="static/assets/plugins/morris/morris.css">
+		
+		<!-- Main CSS -->
+        <link rel="stylesheet" href="static/assets/css/style.css">
+		<!-- Alert Style -->
+		<link rel="stylesheet" href="static/assets/css/alertStyle.css">
+		<!--[if lt IE 9]>
+			<script src="assets/js/html5shiv.min.js"></script>
+			<script src="assets/js/respond.min.js"></script>
+		<![endif]-->
+
+<script src="static/js/jquery.min.js"></script>
+<script src="static/js/jquery.nicescroll.min.js"></script>
+<script src="static/js/echarts.js"></script>
+    </head>
+    <body>
+	
+		<!-- Main Wrapper -->
+        <div class="main-wrapper">
+		
+			<!-- Header -->
+            <div class="header">
+			
+				<!-- Logo -->
+                <div class="header-left">
+                    <a href="index.html" class="logo">
+						<!--<img src="static/assets/img/R-C.jpg" alt="Logo">-->
+					</a>
+					<a href="index.html" class="logo logo-small">
+						<img src="static/assets/img/logo-small.png" alt="Logo" width="30" height="30">
+					</a>
+                </div>
+				<!-- /Logo -->
+				
+				<a href="javascript:void(0);" id="toggle_btn">
+					<i class="fe fe-text-align-left"></i>
+				</a>
+				
+				<div class="top-nav-search">
+
+				</div>
+				
+				<!-- Mobile Menu Toggle -->
+				<a class="mobile_btn" id="mobile_btn">
+					<i class="fa fa-bars"></i>
+				</a>
+				<!-- /Mobile Menu Toggle -->
+
+				
+            </div>
+			<!-- /Header -->
+			
+			<!-- Sidebar -->
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-inner slimscroll">
+					<div id="sidebar-menu" class="sidebar-menu" style="background: #293c55;">
+						<ul>
+							<li>
+								<a href="index"><font color="#FFFFF0">首页</font></a>
+							</li>
+							<li>
+								<a href="#"><font color="#FFFFF0">实时波导分析计算</font></a>
+							</li>
+							<li><a href="evaporation"><font color="#CCCCCC">&ensp;蒸发波导诊断</font></a></li>
+							<li><a href="futureheight"><font color="#CCCCCC"> &ensp;未来波导高度预测</font></a></li>
+							<li>
+								<a href="#"><font color="#FFFFF0">历史文件波导分析</font></a>
+							</li>
+							<li>
+								<a href="surface-evap"><font color="#CCCCCC"> &ensp;表面/悬空波导诊断</font></a>
+							</li>
+							<li><a href="electromagenetic" style="background:#9ca8b8;"> <font color="#293c55">● 电磁波雷达损耗计算</font> </a></li>
+						</ul>
+					</div>
+                </div>
+            </div>
+			<!-- /Sidebar -->
+			
+			<!-- Page Wrapper -->
+            <div class="page-wrapper">
+                <div class="content container-fluid">
+					<!-- Page Header -->
+					<div class="page-header">
+						<div class="row">
+							<div class="col-sm-12">
+								<h3 class="page-title">电磁损耗计算页面</h3>
+								<ul class="breadcrumb">
+									<li class="breadcrumb-item active">当前文件： <li id="selectedFile">暂未选择</li></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					<!-- /Page Header -->
+					<div class="row">
+						<div class="col-sm-6 col-12">
+							<div class="card" style="background-color: #425daf;" onclick="descriptionRow()" title="
+							因客观气象条件而形成的大气波导能否将电磁波捕获在其内形成波导传播与电磁波的波长有关。一般来说，波长越短的电磁波，越容易被波导捕获。能被波导捕获的最大波长称为截止波长，与截止波长相对应的最低电波频率成为最低陷获频率。
+由最大波长的计算公式可知：
+(1)大气波导厚度远大于电磁波波长时，才能捕获电磁波形成波导传播；
+(2)大气波导的厚度愈厚，可形成波导传播的电磁波波长范围的上限愈长；
+(3)大气波导的强度愈强，可形成波导传播的电磁波波长范围的上限愈长。
+							">
+								<div class="card-body">
+									<div class="dash-widget-header">
+										<span class="dash-widget-icon text-primary border-primary">
+											<i class="fa fe-check"></i>
+										</span>
+										<div class="dash-count">
+											<h3 id="cutoff-len" style="color: ghostwhite;">暂无</h3>
+										</div>
+									</div>
+									<div class="dash-widget-info">
+										<h6 class="text-muted">截止波长</h6>
+										<div class="progress progress-sm">
+											<div class="progress-bar bg-primary"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="col-sm-6 col-12">
+							<div class="card" style="background-color: darkgray;" onclick="descriptionRow()" title="
+							因客观气象条件而形成的大气波导能否将电磁波捕获在其内形成波导传播与电磁波的波长有关。一般来说，波长越短的电磁波，越容易被波导捕获。能被波导捕获的最大波长称为截止波长，与截止波长相对应的最低电波频率成为最低陷获频率。
+由最大波长的计算公式可知：
+(1)大气波导厚度远大于电磁波波长时，才能捕获电磁波形成波导传播；
+(2)大气波导的厚度愈厚，可形成波导传播的电磁波波长范围的上限愈长；
+(3)大气波导的强度愈强，可形成波导传播的电磁波波长范围的上限愈长。
+							">
+								<div class="card-body">
+									<div class="dash-widget-header">
+										<span class="dash-widget-icon text-success">
+											<i class="fa fe-bookmark"></i>
+										</span>
+										<div class="dash-count">
+											<h3 id="trap-freq" style="color: ghostwhite;">暂无</h3>
+										</div>
+									</div>
+									<div class="dash-widget-info">
+										<h6 class="text-muted">陷获频率</h6>
+										<div class="progress progress-sm">
+											<div class="progress-bar bg-success" style="background-color: #FDC839 !important;"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="row" id="description-row" style="display: none">
+						<div class="col-lg-12">
+							<div class="card">
+								<div class="card-header" style="font-size: larger;color: black;">
+									陷获频率与截至波长的相关描述
+									<a data-toggle="modal" href="#picture-refraction" class="btn btn-sm bg-success-light" style="float: right">
+										<i class="fe fe-camera"></i> 大气折射现象图示
+									</a>
+								</div>
+								<div class="card-body">
+									<h6>
+										因客观气象条件而形成的大气波导能否将电磁波捕获在其内形成波导传播与电磁波的波长有关。一般来说，波长越短的电磁波，越容易被波导捕获。能被波导捕获的最大波长称为截止波长，与截止波长相对应的最低电波频率成为最低陷获频率。
+									</h6>
+									<ul>
+										由最大波长的计算公式可知：
+										<li>
+											大气波导厚度远大于电磁波波长时，才能捕获电磁波形成波导传播；
+										</li>
+										<li>
+											大气波导的厚度愈厚，可形成波导传播的电磁波波长范围的上限愈长；
+										</li>
+										<li>
+											大气波导的强度愈强，可形成波导传播的电磁波波长范围的上限愈长。
+										</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="row" id="radar-loss">
+						<div class="col-lg-12">
+							<div class="card" title="在当前波导计算下的电磁波损耗，大于该值则雷达性能得到增益，小于该值则保持雷达原来性能" onclick="descriptionRadar()">
+								<div class="card-header">
+									<h4 class="card-title" style="color: #17a2b8;float:left">当前系数下的雷达损耗为： <h4 id="loss-number" style="float: left"></h4></h4>
+									<br/>
+								</div>
+								<p style="color: #6c757d; display: none" id="description-radar">&emsp; 在当前波导计算下的电磁波损耗，大于该值则雷达性能得到增益，小于该值则保持雷达原来性能</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="col-lg-12">
+							<div class="card card-chart" >
+								<!-- Sales Chart -->
+								<div class="card-header">
+									<h4 class="card-title" style="float: left;">文件选择</h4>
+									<a data-toggle="modal" onclick="detail(this)" href="#infor-window" class="btn btn-sm bg-success-light" style="float: right">
+										<i class="fe fe-book"></i> 详细信息
+									</a>
+								</div>
+								<form id="upload-form" method="post" action="uploadE" enctype="multipart/form-data">
+								<div class="card-body" id="file-selected">
+									<input class="form-control" type="file" id="file-data" name="file-data">
+									<p id="file-tips"></p>
+									<div class="text-right">
+										<button type="submit" class="btn btn-primary">确定</button>
+									</div>
+								</div>
+								</form>
+							</div>
+							<div class="card">
+								<div class="card-header">
+									<h4 class="card-title">探测雷达基本信息情况
+									<button class="btn btn-secondary btn-lg" id="detail-button" onclick="radar_detail()" style="float: right;">隐藏</button>
+									</h4>
+									<p>本次更新时间：<span id="update-time" style="margin-bottom:0;color:#009efb;"></span></p>
+								</div>
+								<div class="card-body" id="radar-infor">
+									<form id="history_form" method="POST" omsubmit='return radar_infor()'>
+										{{form.csrf_token}}
+										<div class="row">
+											<div class="col-xl-6">
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">雷达频率</label>
+													<div class="col-lg-9">
+														{{form.RF(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="radar-fre")}}
+														{%for e in form.RF.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">雷达峰值频率</label>
+													<div class="col-lg-9">
+														{{form.RT(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="radar-top")}}
+														{%for e in form.RT.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">天线高度</label>
+													<div class="col-lg-9">
+														{{form.AH(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="antenna-high")}}
+														{%for e in form.AH.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">天线增益</label>
+													<div class="col-lg-9">
+														{{form.AG(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="antenna-gain")}}
+														{%for e in form.AG.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">波束宽度</label>
+													<div class="col-lg-9">
+														{{form.BW(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="beam-width")}}
+														{%for e in form.BW.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">发射仰角</label>
+													<div class="col-lg-9">
+														{{form.LE(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="launch-ele")}}
+														{%for e in form.LE.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+											</div>
+											<div class="col-xl-6">
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">最小信噪比</label>
+													<div class="col-lg-9">
+														{{form.MN(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="min-noise")}}
+														{%for e in form.MN.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">接收机带宽</label>
+													<div class="col-lg-9">
+														{{form.RW(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="rec-width")}}
+														{%for e in form.RW.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">系统综合损耗</label>
+													<div class="col-lg-9">
+														{{form.SL(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="sys-loss")}}
+														{%for e in form.SL.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">接收机噪声系数</label>
+													<div class="col-lg-9">
+														{{form.NC(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="noise-coe")}}
+														{%for e in form.NC.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">目标高度</label>
+													<div class="col-lg-9">
+														{{form.TH(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="target-high")}}
+														{%for e in form.TH.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+												<div class="form-group row">
+													<label class="col-lg-3 clo-form-label">目标散射截面</label>
+													<div class="col-lg-9">
+														{{form.RR(class_="form-control", oninput="value=value.match(/-?[0-9]*\.?[0-9]*/)", id="rcs-radar")}}
+														{%for e in form.RR.errors%}
+											                <span style="color: red">*{{e}}</span>
+														{%endfor%}
+													</div>
+												</div>
+											</div>
+										</div>
+										<div class="text-right">
+											<button type="submit" class="btn btn-primary" onclick="radar_infor()">更新</button>
+										</div>
+									</form>
+								</div>
+
+							</div>
+						</div>
+					</div>
+
+					<div class="row" id="deficiency">
+						<div class="col-lg-12">
+							<div class="card">
+								<div class="card-header">
+									<h4 class="card-title" style="color: red;">探测雷达基本信息不完全，请补充更新后查阅。</h4>
+								</div>
+							</div>
+						</div>
+					</div>
+					<!-- Sales Chart -->
+
+					<div class="row" id="pic-content">
+						<div class="col-md-12 col-lg-6">
+							<div class="card card-chart">
+								<div  class="card-header">
+									<h4 class="card-title">当前波导下的雷达增益情况</h4>
+								</div>
+								<div id="chart-left" style="height: 500px"></div>
+
+							</div>
+						</div>
+						<div class="col-md-12 col-lg-6">
+							<div class="card card-chart">
+								<div  class="card-header">
+									<h4 class="card-title">电磁波传播损失分布(单程)</h4>
+								</div>
+								<div id="chart-right" style="height: 500px"></div>
+							</div>
+						</div>				
+					</div>
+				
+				</div>
+			</div>
+        </div>
+		<div class="modal fade" id="infor-window" role="dialog" style="display: none;" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 1080px">
+				<div class="modal-content" style="height: 720px">
+					<div class="modal-body">
+						<div class="form-content p-2">
+							<div class="modal-header border-0">
+								<h4 class="modal-title">文件详细信息</h4>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">×</span>
+								</button>
+							</div>
+							<div class="card" style="height: 550px">
+								<div class="card-body">
+									<textarea id="file-infor" readonly="readonly" style="width: -webkit-fill-available;height: 500px">
+
+									</textarea>
+								</div>
+							</div>
+							<button type="button" class="btn btn-danger" style="float: right" data-dismiss="modal">关闭</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="modal fade" id="picture-refraction" role="dialog" style="display: none;" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 720px">
+				<div class="modal-content">
+					<div class="modal-body">
+						<div class="form-content p-2">
+							<div class="modal-header border-0">
+								<h4 class="modal-title">折射现象图示</h4>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">×</span>
+								</button>
+							</div>
+							<div class="card">
+								<div class="card-body">
+									<p>
+										根据大气折射指数(或大气修正折射指数)随高度的变化，可以将大气折射分为如图所示的六种类型。<br/>
+										大气波导的形成，主要对应于上述图表中的陷获折射区，即大气折射指数垂直梯度小于-157N/km(或大气修正折射指数垂直梯度小于0M/km)时，
+										电磁波传播路径的曲率将大于地球表面曲率，此时电磁波会部分地被陷获在一定厚度的大气薄层内，就像电磁波在金属波导管中传播一样，
+										这种现象称为大气波导传播，形成波导传播的大气薄层称为大气波导。
+									</p>
+									<div style="">
+										<img src="../static/assets/img/refraction.jpg" style="width: 100%;">
+									</div>
+								</div>
+							</div>
+							<button type="button" class="btn btn-danger" style="float: right" data-dismiss="modal">关闭</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+	<!-- /Page Header -->
+	<!-- /Main Wrapper -->
+
+	<!-- jQuery -->
+	<script src="static/assets/js/jquery.min.js"></script>
+
+	<!-- Bootstrap Core JS -->
+	<script src="static/assets/js/popper.min.js"></script>
+	<script src="static/assets/js/bootstrap.min.js"></script>
+
+	<!-- Slimscroll JS -->
+	<script src="static/assets/plugins/slimscroll/jquery.slimscroll.min.js"></script>
+
+	<script src="static/assets/plugins/raphael/raphael.min.js"></script>
+<!--	<script src="static/assets/plugins/morris/morris.min.js"></script>-->
+<!--	<script src="static/assets/js/chart.morris.js"></script>-->
+
+	<!-- Custom JS -->
+	<script src="static/assets/js/script.js"></script>
+	<script type="text/javascript" src="static/js/socket.io.min.js"></script>
+	<script type="text/javascript">
+			// 雷达信息
+		let R_I = {{ R_I|tojson }}
+		document.getElementById("radar-fre").value = R_I.RF;
+		document.getElementById("radar-top").value = R_I.RT;
+		document.getElementById("antenna-high").value = R_I.AH;
+		document.getElementById("antenna-gain").value = R_I.AG;
+		document.getElementById("beam-width").value = R_I.BW;
+		document.getElementById("launch-ele").value = R_I.LE;
+		document.getElementById("min-noise").value = R_I.MN;
+		document.getElementById("rec-width").value = R_I.RW;
+		document.getElementById("sys-loss").value = R_I.SL;
+		document.getElementById("noise-coe").value = R_I.NC;
+		document.getElementById("target-high").value = R_I.TH;
+		document.getElementById("rcs-radar").value = R_I.RR;
+		document.getElementById("update-time").innerHTML = R_I.TT;
+		if(R_I.RF==""||R_I.RT==""||R_I.AH==""||R_I.AG==""||R_I.AG==""||
+				R_I.BW==""||R_I.LE==""||R_I.MN==""||R_I.RW==""||R_I.SL==""||
+				R_I.NC==""||R_I.TH==""||R_I.RR==""){
+			document.getElementById("deficiency").style.display="";
+			document.getElementById("pic-content").style.display="none";
+			document.getElementById("radar-loss").style.display="none";
+		}
+		else{
+			document.getElementById("deficiency").style.display="none";
+			document.getElementById("pic-content").style.display="";
+			document.getElementById("radar-loss").style.display="";
+		}
+		let elec_data = {{ Elec|tojson }}
+		var Lossflag = {{R_R}}
+		document.getElementById("loss-number").innerHTML = Lossflag;
+		let FileName = {{FileName|tojson}}
+		var ErrorCode = {{ErrorCode|tojson}}
+		if (FileName != null && ErrorCode.code == 200) {
+			document.getElementById("pic-content").style.display = "";
+			document.getElementById("selectedFile").innerHTML = FileName;
+		} else if(ErrorCode.code == 300 || ErrorCode.code == 400 || ErrorCode.code == 500) {
+			document.getElementById("selectedFile").innerHTML = FileName;
+			document.getElementById("pic-content").style.display = "none";
+			alert(ErrorCode.infor);
+		} else {
+			document.getElementById("pic-content").style.display = "none";
+		}
+		let TrapInfor = {{TrapInfor|tojson}}
+		if (TrapInfor.trapFreq == null) {
+			document.getElementById("cutoff-len").innerHTML = "暂无";
+			document.getElementById("trap-freq").innerHTML = "暂无";
+		} else {
+			document.getElementById("trap-freq").innerHTML = TrapInfor.trapFreq.toString() + "GHz";
+			document.getElementById("cutoff-len").innerHTML = TrapInfor.cutOff.toString() + "m";
+		}
+	</script>
+	<script type="text/javascript" src="static/js/evaporateDetail.js"></script>
+	<script type="text/javascript" src="static/chart/electromagenetic/chart-left.js"></script>
+	<script type="text/javascript" src="static/chart/electromagenetic/chart-right.js"></script>
+	<script type="text/javascript" src="static/js/radar.js"></script>
+</html>

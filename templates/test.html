@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1 id="t"></h1>
+</body>
+<script src="https://www.jq22.com/jquery/jquery-1.10.2.js"></script>
+<script type="text/javascript" src="static/js/socket.io.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        namespace = '/test_conn';
+        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace, {transports: ['websocket']});
+        socket.on('server_response', function(res) {
+            console.log(res.data);
+            $('#t').text(res.data);
+        });
+    });
+</script>
+</html>

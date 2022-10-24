@@ -1,0 +1,328 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0">
+        <title>船载大气波导分析软件</title>
+
+		<!-- Favicon -->
+        <link rel="shortcut icon" type="image/x-icon" href="static/assets/img/favicon.png">
+
+		<!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="static/assets/css/bootstrap.min.css">
+
+		<!-- Fontawesome CSS -->
+        <link rel="stylesheet" href="static/assets/css/font-awesome.min.css">
+
+		<!-- Feathericon CSS -->
+        <link rel="stylesheet" href="static/assets/css/feathericon.min.css">
+
+		<link rel="stylesheet" href="static/assets/plugins/morris/morris.css">
+
+		<!-- Main CSS -->
+        <link rel="stylesheet" href="static/assets/css/style.css">
+
+		<!-- Alert CSS-->
+		<link rel="stylesheet" href="static/assets/css/alertStyle.css">
+		<!--[if lt IE 9]>
+			<script src="assets/js/html5shiv.min.js"></script>
+			<script src="assets/js/respond.min.js"></script>
+		<![endif]-->
+
+<script src="static/js/jquery.min.js"></script>
+<script src="static/js/jquery.nicescroll.min.js"></script>
+<script src="static/js/echarts.js"></script>
+<script src="static/js/dialog.js"></script>
+
+    </head>
+    <body>
+	
+		<!-- Main Wrapper -->
+        <div class="main-wrapper">
+		
+			<!-- Header -->
+            <div class="header">
+			
+				<!-- Logo -->
+                <div class="header-left">
+                    <a href="index.html" class="logo">
+						<!--<img src="static/assets/img/R-C.jpg" alt="Logo">-->
+					</a>
+					<a href="index.html" class="logo logo-small">
+						<img src="static/assets/img/logo-small.png" alt="Logo" width="30" height="30">
+					</a>
+                </div>
+				<!-- /Logo -->
+
+				<a href="javascript:void(0);" id="toggle_btn">
+					<i class="fe fe-text-align-left"></i>
+				</a>
+
+				<div class="top-nav-search">
+
+				</div>
+
+				<!-- Mobile Menu Toggle -->
+				<a class="mobile_btn" id="mobile_btn">
+					<i class="fa fa-bars"></i>
+				</a>
+				<!-- /Mobile Menu Toggle -->
+
+
+            </div>
+			<!-- /Header -->
+			
+			<!-- Sidebar -->
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-inner slimscroll">
+					<div id="sidebar-menu" class="sidebar-menu" style="background: #293c55;">
+						<ul>
+							<li> 
+								<a href="index"><font color="#FFFFF0">首页</font></a>
+							</li>
+							<li>
+								<a href="#"><font color="#FFFFF0">实时波导分析计算</font></a>
+							</li>
+							<li><a href="evaporation"><font color="#CCCCCC">&ensp; 蒸发波导诊断</font></a></li>
+							<li><a href="futureheight"><font color="#CCCCCC">&ensp;未来波导高度预测</font></a></li>
+							<li>
+								<a href="#"><font color="#FFFFF0">历史文件波导分析</font></a>
+							</li>
+							<li style="background:#9ca8b8;">
+								<a href="surface-evap" style="background:#9ca8b8;"><font color="#293c55"> ●表面/悬空波导诊断</font></a>
+							</li>
+							<li><a href="electromagenetic"> <font color="#CCCCCC"> &ensp;电磁波雷达损耗计算</font> </a></li>
+						</ul>
+					</div>
+                </div>
+            </div>
+			<!-- /Sidebar -->
+			
+			<!-- Page Wrapper -->
+            <div class="page-wrapper">
+			
+                <div class="content container-fluid">
+					<!-- Page Header -->
+					<div class="page-header">
+						<div class="row">
+							<div class="col-sm-12">
+								<h3 class="page-title">表面波导与悬空波导诊断页面</h3>
+								<ul class="breadcrumb">
+									<li class="breadcrumb-item active">当前文件： <li id="selectedFile">暂未选择</li></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					<!-- /Page Header -->
+					<div class="row">
+						<div class="col-sm-6 col-12">
+							<div class="card" style="background-color: #425daf;" title="
+							因客观气象条件而形成的大气波导能否将电磁波捕获在其内形成波导传播与电磁波的波长有关。一般来说，波长越短的电磁波，越容易被波导捕获。能被波导捕获的最大波长称为截止波长，与截止波长相对应的最低电波频率成为最低陷获频率。
+由最大波长的计算公式可知：
+(1)大气波导厚度远大于电磁波波长时，才能捕获电磁波形成波导传播；
+(2)大气波导的厚度愈厚，可形成波导传播的电磁波波长范围的上限愈长；
+(3)大气波导的强度愈强，可形成波导传播的电磁波波长范围的上限愈长。
+							">
+								<div class="card-body">
+									<div class="dash-widget-header">
+										<span class="dash-widget-icon text-primary border-primary">
+											<i class="fa fe-check"></i>
+										</span>
+										<div class="dash-count">
+											<h3 id="cutoff-len" style="color: ghostwhite;">暂无</h3>
+										</div>
+									</div>
+									<div class="dash-widget-info">
+										<h6 class="text-muted">截止波长</h6>
+										<div class="progress progress-sm">
+											<div class="progress-bar bg-primary"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="col-sm-6 col-12">
+							<div class="card" style="background-color: darkgray;" title="
+							因客观气象条件而形成的大气波导能否将电磁波捕获在其内形成波导传播与电磁波的波长有关。一般来说，波长越短的电磁波，越容易被波导捕获。能被波导捕获的最大波长称为截止波长，与截止波长相对应的最低电波频率成为最低陷获频率。
+由最大波长的计算公式可知：
+(1)大气波导厚度远大于电磁波波长时，才能捕获电磁波形成波导传播；
+(2)大气波导的厚度愈厚，可形成波导传播的电磁波波长范围的上限愈长；
+(3)大气波导的强度愈强，可形成波导传播的电磁波波长范围的上限愈长。
+							">
+								<div class="card-body">
+									<div class="dash-widget-header">
+										<span class="dash-widget-icon text-success">
+											<i class="fa fe-bookmark"></i>
+										</span>
+										<div class="dash-count">
+											<h3 id="trap-freq" style="color: ghostwhite;">暂无</h3>
+										</div>
+									</div>
+									<div class="dash-widget-info">
+										<h6 class="text-muted">陷获频率</h6>
+										<div class="progress progress-sm">
+											<div class="progress-bar bg-success" style="background-color: #FDC839 !important;"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-12">
+							<!-- Sales Chart -->
+							<div class="card card-chart" >
+								<!-- Sales Chart -->
+								<div class="card-header">
+									<h4 class="card-title" style="float: left;">文件选择</h4>
+									<a data-toggle="modal" href="#picture-evaporation" class="btn btn-sm bg-success-light" style="float: right">
+										<i class="fe fe-camera"></i> 波导现象图示
+									</a>
+									<a data-toggle="modal" onclick="detail(this)" href="#infor-window" class="btn btn-sm bg-success-light" style="float: right; margin-right: 2%">
+										<i class="fe fe-book"></i> 详细信息
+									</a>
+								</div>
+								<form id="upload-form" method="post" action="uploadS" enctype="multipart/form-data">
+								<div class="card-body" id="file-selected">
+									<input class="form-control" type="file" id="file-data" name="file-data">
+									<p id="file-tips"></p>
+									<div class="text-right">
+										<button onclick="getfilepath()" type="submit" class="btn btn-primary">确定</button>
+									</div>
+								</div>
+								</form>
+							</div>
+						</div>
+					</div>
+					<div class="row" id="charts">
+						<div class="col-md-12 col-lg-6">
+							<div class="card card-chart">
+								<div  class="card-header">
+									<h4 class="card-title">大气相关指数情况</h4>
+								</div>
+								<div id="chart1" style="height: 500px"></div>
+							</div>
+						</div>
+                        <div class="col-md-12 col-lg-6">
+							<div class="card card-chart">
+								<div  class="card-header">
+									<h4 class="card-title">波导实际廓线</h4>
+								</div>
+								<div id="chart2" style="height: 500px"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+				
+	<div class="modal fade" id="infor-window" role="dialog" style="display: none;" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 1080px">
+				<div class="modal-content" style="height: 720px">
+					<div class="modal-body">
+						<div class="form-content p-2">
+							<div class="modal-header border-0">
+								<h4 class="modal-title">文件详细信息</h4>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">×</span>
+								</button>
+							</div>
+							<div class="card" style="height: 550px">
+								<div class="card-body">
+									<textarea id="file-infor" readonly="readonly" style="width: -webkit-fill-available;height: 500px">
+
+									</textarea>
+								</div>
+							</div>
+							<button type="button" class="btn btn-danger" style="float: right" data-dismiss="modal">关闭</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	<div class="modal fade" id="picture-evaporation" role="dialog" style="display: none;" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 720px">
+				<div class="modal-content">
+					<div class="modal-body">
+						<div class="form-content p-2">
+							<div class="modal-header border-0">
+								<h4 class="modal-title">大气波导种类图示</h4>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">×</span>
+								</button>
+							</div>
+							<div class="card">
+								<div class="card-body">
+									<h6>
+										海洋大气环境中通常存在三类大气波导：悬空波导和蒸发波导、表面波导。表面波导又分为陷获层接地的表面波导和陷获层悬空的表面波导。
+									</h6>
+									<ul>
+  										<li>
+											蒸发波导：蒸发波导是因为海面蒸发使湿度在很小的垂直高度范围内发生锐减而形成的一类特殊的表面波导，蒸发波导高度通常在6-30米之间。在高纬度海域冬季夜间蒸发波导高度可能只有1-2m;而在近赤道纬度夏季昼间，蒸发波导可能会高达40m。
+										</li>
+  										<li>
+											悬空波导：下边界悬空的波导称为悬空波导，通常出现在3000米高度以下。悬空波导的特点是陷获层顶的大气修正折射指数大于地面的大气修正折射指数。自陷获层顶引垂直于地面的垂线，该垂线介于陷获层及陷获层下梯度为正数的那一段大气折射指数廓线间的线段的长度称为悬空波导厚度。
+										</li>
+										<li>
+											表面波导：表面波导抬升后会转变为悬空波导，悬空波导下降后也会转变为表面波导。对于表面波导和悬空波导，只要能获取大气折射指数垂直分布廓线，就可以判断在大气环境中是否存在大气波导及大气波导的厚度。
+										</li>
+									</ul>
+									<div style="">
+										<img src="../static/assets/img/evaprations.png" style="width: 100%;">
+									</div>
+								</div>
+							</div>
+							<button type="button" class="btn btn-danger" style="float: right" data-dismiss="modal">关闭</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+    <!-- jQuery -->
+    <script src="static/assets/js/jquery.min.js"></script>
+
+    <!-- Bootstrap Core JS -->
+    <script src="static/assets/js/popper.min.js"></script>
+    <script src="static/assets/js/bootstrap.min.js"></script>
+
+    <!-- Slimscroll JS -->
+    <script src="static/assets/plugins/slimscroll/jquery.slimscroll.min.js"></script>
+
+{#    <script src="static/assets/plugins/raphael/raphael.min.js"></script>#}
+{#    <script src="static/assets/plugins/morris/morris.min.js"></script>#}
+{#    <script src="static/assets/js/chart.morris.js"></script>#}
+
+    <!-- Custom JS -->
+    <script  src="static/assets/js/script.js"></script>
+    <!-- Sales Chart -->
+    <script type="text/javascript" src="static/js/socket.io.min.js"></script>
+	<script type="text/javascript">
+        var Refraction = {{ Refraction|tojson}}
+        var SD = {{ SD|tojson }}
+        var ED = {{ ED|tojson }}
+		var FileName = {{FileName|tojson}}
+		var ErrorCode = {{ErrorCode|tojson}}
+		if (Refraction != null && ErrorCode.code == 200) {
+			document.getElementById("charts").style.display = "";
+			document.getElementById("selectedFile").innerHTML = FileName;
+		} else if(ErrorCode.code == 300 || ErrorCode.code == 400 || ErrorCode.code == 500) {
+			document.getElementById("selectedFile").innerHTML = FileName;
+			alert(ErrorCode.infor);
+		} else {
+			document.getElementById("charts").style.display = "none";
+		}
+		let TrapInfor = {{TrapInfor|tojson}}
+		if (TrapInfor.trapFreq == null) {
+			document.getElementById("cutoff-len").innerHTML = "暂无";
+			document.getElementById("trap-freq").innerHTML = "暂无";
+		} else {
+			document.getElementById("trap-freq").innerHTML = TrapInfor.trapFreq.toString() + "GHz";
+			document.getElementById("cutoff-len").innerHTML = TrapInfor.cutOff.toString() + "m";
+		}
+    </script>
+	<script type="text/javascript" src="static/js/evaporateDetail.js"></script>
+    <script type="text/javascript" src="static/chart/suface-evaporation/echarts.min.js"></script>
+    <script type="text/javascript" src="static/chart/suface-evaporation/chart1.js"></script>
+    <script type="text/javascript" src="static/chart/suface-evaporation/chart2.js"></script>
+</html>
