@@ -5,9 +5,9 @@ import threading
 import pandas
 import numpy as np
 from cmath import exp
-import matlab.engine
+# import matlab.engine
 from scipy.interpolate import interp1d
-import SP
+# import SP
 import math
 
 
@@ -27,20 +27,20 @@ import math
 # 2层气温，2层湿度，2层风向，2层风速，3层气温，3层湿度，3层风向，3层风速]
 # layer为层数，根据excel的说明，共有1 2 3 三层
 # data为numpy型数据！！！否则下面运行不了
-def zhengfaMs(data, layer=0):
-    start = time.time()
-    engine = matlab.engine.start_matlab()
-    end = time.time()
-    print("time cost:", end - start)
-    evap = []
-    for i in range(data.shape[0]):
-        # 气温、海表温、湿度、风速、压强
-        temp = engine.demo(matlab.double([data[i][2 + 4 * layer]]), matlab.double([data[i][0]]),
-                           matlab.double([data[i][3 + 4 * layer]]),
-                           matlab.double([data[i][5 + layer * 4]]), matlab.double([data[i][1]]))
-        # print(temp)
-        evap.append(temp)
-    return evap
+# def zhengfaMs(data, layer=0):
+#     start = time.time()
+#     engine = matlab.engine.start_matlab()
+#     end = time.time()
+#     print("time cost:", end - start)
+#     evap = []
+#     for i in range(data.shape[0]):
+#         # 气温、海表温、湿度、风速、压强
+#         temp = engine.demo(matlab.double([data[i][2 + 4 * layer]]), matlab.double([data[i][0]]),
+#                            matlab.double([data[i][3 + 4 * layer]]),
+#                            matlab.double([data[i][5 + layer * 4]]), matlab.double([data[i][1]]))
+#         # print(temp)
+#         evap.append(temp)
+#     return evap
 
 
 # p气压 t温度，shidu相对湿度，z高度,计算得到某一高度的大气折射率
@@ -91,11 +91,11 @@ def xk_bmM(data, selected="n"):
     xuankongM, biaomianM = engine.xbM(ref, h, nargout=2)
     xuankongM = np.array(xuankongM)
     biaomianM = np.array(biaomianM)
-    if ((xuankongM[0][0] != 0) & (biaomianM[0][0] != 0)):
+    if (xuankongM[0][0] != 0) & (biaomianM[0][0] != 0):
         return xuankongM, biaomianM
-    elif ((xuankongM[0][0] != 0) & (biaomianM[0][0] == 0)):
+    elif (xuankongM[0][0] != 0) & (biaomianM[0][0] == 0):
         return xuankongM, []
-    elif ((xuankongM[0][0] == 0) & (biaomianM[0][0] != 0)):
+    elif (xuankongM[0][0] == 0) & (biaomianM[0][0] != 0):
         return [], biaomianM
     else:
         return [], []
@@ -280,12 +280,12 @@ def generate_data_diancichuanbo(data, selected="n"):
 
 # 输出list，list中存储每条廓线的电磁传播损耗
 # 一般情况只计算一条廓线，同一时刻只计算一次廓线情况
-def dianciLoss(data, selected="n"):
-    pre_data = generate_data_diancichuanbo(data, selected)
-    loss = SP.spe(pre_data[0][0], pre_data[1][0], pre_data[2][0], pre_data[3][0], pre_data[4][0])
-    # SP.spe(0.137, 100.0, -0.043, 300, 0, loss)
-    loss = np.array(loss)
-    return loss
+# def dianciLoss(data, selected="n"):
+#     pre_data = generate_data_diancichuanbo(data, selected)
+#     loss = SP.spe(pre_data[0][0], pre_data[1][0], pre_data[2][0], pre_data[3][0], pre_data[4][0])
+#     # SP.spe(0.137, 100.0, -0.043, 300, 0, loss)
+#     loss = np.array(loss)
+#     return loss
 
 
 # Text1:雷达频率(MHz)
