@@ -599,18 +599,18 @@ def evap_duct_SST(t, ts, RH, u, P):
 
 if __name__ == "__main__":
     # evap_duct_SST(气温，海温，湿度，风速，气压)
-    data = np.load("excel.npy")
-    e0 = np.load("e0.npy")
-    # print(True in np.isnan(e0))
-    e1 = np.load("e1.npy")
-    e2 = np.load("e2.npy")
-
-    te0 = np.load("test_e0.npy")
-    te1 = np.load("test_e1.npy")
-    te2 = np.load("test_e2.npy")
-    print("e1 diff:", np.sum(np.abs(e0 - te0)) / data.shape[0])
-    print("e2 diff:", np.sum(np.abs(e1 - te1)) / data.shape[0])
-    print("e3 diff:", np.sum(np.abs(e2 - te2)) / data.shape[0])
+    # data = np.load("excel.npy")
+    # e0 = np.load("e0.npy")
+    # # print(True in np.isnan(e0))
+    # e1 = np.load("e1.npy")
+    # e2 = np.load("e2.npy")
+    #
+    # te0 = np.load("test_e0.npy")
+    # te1 = np.load("test_e1.npy")
+    # te2 = np.load("test_e2.npy")
+    # print("e1 diff:", np.sum(np.abs(e0 - te0)) / data.shape[0])
+    # print("e2 diff:", np.sum(np.abs(e1 - te1)) / data.shape[0])
+    # print("e3 diff:", np.sum(np.abs(e2 - te2)) / data.shape[0])
     # print(data.shape)
     # for i in range(3):
     #     evap_sub = []
@@ -625,3 +625,6 @@ if __name__ == "__main__":
 
     # evap = evap_duct_SST(19, 24.5554752349854, 99, 4.100, 1014.3000)
     # print(evap)
+
+    evap = evap_duct_SST(19, 24.5554752349854, 99, 4.100, 1014.3000)
+    print(evap)
