@@ -1,0 +1,321 @@
+clc;clear;
+
+% function P-J model
+ %------输入参数------
+%  t =10.4 %空气温度
+%  to =15.8; %海表温度      
+%  z =6 ;  %测量高度
+%  u = 3.66;   %风速
+%  rh =57;  %相对湿度
+
+
+  
+ b = -0.125; %为折射率梯度
+ zo = 0.00015; %海面粗糙长度
+ beta = 5.2;
+ Tz = t+273.16;
+ To = to+273.16;
+ 
+if Tz-To <= -1   
+ Rib = 98*z*(Tz-To)/(u^2*Tz); %理查森数
+
+ %修正
+ if Rib <=1
+    Rib = Rib;
+ else 
+   Rib = 1;
+ end
+ 
+ if Rib <= -3.75 
+    Y = 0.05; %经验剖面细数
+ elseif  Rib>-3.75 &&  Rib<= -0.12
+      Y = 0.065+0.004*Rib;
+ elseif  Rib>=-0.12 && Rib <= 0.14
+        Y = 0.109+0.367*Rib;
+ else 
+        Y = 0.155+0.021*Rib;
+ end 
+ 
+ L = 10*z*Y/Rib; %M-O长度
+ 
+ %稳定或中性情况下 
+ es = 6.105*exp(25.22*t/Tz-5.31*log(Tz/273.2)); %测量高度空气饱和水汽压
+ e = es*rh/100;
+ eo = 6.105*exp(25.22*to/To-5.31*log(To/273.2)); %海面饱和水汽压
+ Np = 77.6/Tz*(1000+4810/Tz*e); %
+ Npo = 77.6/To*(1000+4810/To*eo);
+ DNp = Np-Npo;
+ zi =[0:50];
+ Ms=Np+0.157*z;
+if Rib >= 0 
+ B = log(z/zo)+beta/L*(z-zo);
+ H = DNp/(b*B-DNp*beta/L) %波导高度
+ M = Ms+zi/8-(0.125*H/(1+5.2*H/L))*(log((zi+zo)/zo+5.2*zi/L))
+ %不稳定情况下
+else
+ c = z/L;
+   if c >= -0.01
+     faith_c = -4.5*c;
+   elseif c>= -0.026 && c < -0.001
+       faith_c = 10^(1.02*log(-c)+0.69);
+   elseif c>= -0.1 && c < -0.026
+         faith_c = 10^(0.776*log(-c)+0.306);
+   elseif c>= -1 && c < -0.1
+          faith_c = 10^(0.630*log(-c)+0.16);
+   elseif c>= -2.2 && c < -1
+          faith_c = 10^(0.414*log(-c)+0.16); 
+   else
+          faith_c = 2;
+   end 
+ B = log(z/zo)-faith_c;
+ H = ((b*B/DNp)^4-4*4.5/L*((b*B/DNp)^3))^(-1/4)
+ d = H/L ;
+ n=1;
+ df=1;
+ while df > 0.001
+     if n == 1
+        f =1;
+     else
+        f = f1 ;
+     end 
+     f1 = (1-(20.8*zi*f/L)).^(1/4);
+     df = abs((f1-f)/f);
+     n = n+1;
+ end 
+ 
+ M = Ms+zi/8-(0.125*H/(1+5.2*H/L))*(log((zi+zo)/zo+5.2*zi/L));
+end
+
+%温差修正-气海温差大于-1
+else
+  %计算温差为-1
+  to1 = to ;
+  t1 = to1-1 ;
+  To1 = To ;
+  Tz1 = To1-1 ;
+  Rib1 = 98*z*(Tz1-To1)/(u^2*Tz1); %理查森数
+   % 参数修正
+ if Rib1 <=1
+    Rib1 = Rib1;
+ else 
+   Rib1 = 1;
+ end
+ 
+ if Rib1 <= -3.75 
+    Y1 = 0.05; %经验剖面细数
+ elseif  Rib1>-3.75 &&  Rib1<= -0.12
+      Y1 = 0.065+0.004*Rib1;
+ elseif  Rib1>=-0.12 && Rib1 <= 0.14
+        Y1 = 0.109+0.367*Rib1;
+ else 
+        Y1 = 0.155+0.021*Rib1;
+ end 
+ 
+ L1 = 10*z*Y1/Rib1; %M-O长度
+ 
+ %稳定或中性情况下
+ es1 = 6.105*exp(25.22*t1/Tz1-5.31*log(Tz1/273.2)); %测量高度空气饱和水汽压
+ e1 = es1*rh/100;
+ eo1 = 6.105*exp(25.22*to1/To1-5.31*log(To1/273.2)); %海面饱和水汽压
+ Np1 = 77.6/Tz1*(1000+4810/Tz1*e1); %
+ Npo1 = 77.6/To1*(1000+4810/To1*eo1);
+ DNp1 = Np1-Npo1;
+ zi =[0:50];
+ Ms1=Np1+0.157*z;
+if Rib1 >= 0 
+ B1 = log(z/zo)+beta/L1*(z-zo);
+ H1 = DNp1/(b*B1-DNp1*beta/L1) %波导高度
+ M1 = Ms1+zi/8-(0.125*H1/(1+5.2*H1/L1))*(log((zi+zo)/zo+5.2*zi/L1))
+ %不稳定情况下
+else
+ c1 = z/L1;
+   if c1 >= 0.01
+     faith_cc = -4.5*c1;
+   elseif c1>= -0.026 && c1 < -0.001
+       faith_cc = 10^(1.02*log(-c1)+0.69);
+   elseif c1>= -0.1 && c1 < -0.026
+         faith_cc = 10^(0.776*log(-c1)+0.306);
+   elseif c1>= -1 && c1 < -0.1
+          faith_cc = 10^(0.630*log(-c1)+0.16);
+   elseif c1>= -2.2 && c1 < -1
+          faith_cc = 10^(0.414*log(-c1)+0.16);  
+   else
+          faith_cc = 2;
+   end 
+ B1 = log(z/zo)-faith_cc;
+ H1 = ((b*B1/DNp1)^4-4*4.5/L1*((b*B1/DNp1)^3))^(-1/4)
+ d1 = H1/L1 ;
+ n=1;
+ df=1;
+ while df > 0.001
+     if n == 1
+        f =1;
+     else
+        f = f1 ;
+     end 
+     f1 = (1-(20.8*zi*f/L1)).^(1/4);
+     df = abs((f1-f)/f);
+     n = n+1;
+ end 
+ 
+ M1 = Ms1+zi/8-(0.125*H1/(1+5.2*H1/L1))*(log((zi+zo)/zo+5.2*zi/L1));
+end
+
+  %计算气海温差为零
+  to2 = to ;
+  t2 = to2 ;
+  To2 = To;
+  Tz2 = To2;
+  Rib2 = 98*z*(Tz2-To2)/(u^2*Tz2); %理查森数
+   % 参数修正
+ if Rib2 <=1
+    Rib2 = Rib2;
+ else 
+   Rib2 = 1;
+ end
+ 
+ if Rib2 <= -3.75 
+    Y2 = 0.05; %经验剖面细数
+ elseif  Rib2>-3.75 &&  Rib2<= -0.12
+      Y = 0.065+0.004*Rib;
+ elseif  Rib2>=-0.12 && Rib2 <= 0.14
+        Y2 = 0.109+0.367*Rib2;
+ else 
+        Y2 = 0.155+0.021*Rib2;
+ end 
+ 
+ L2 = 10*z*Y2/Rib2; %M-O长度
+ 
+ %稳定或中性情况下
+ es2 = 6.105*exp(25.22*t2/Tz2-5.31*log(Tz2/273.2)); %测量高度空气饱和水汽压
+ e2 = es2*rh/100;
+ eo2 = 6.105*exp(25.22*to2/To2-5.31*log(To2/273.2)); %海面饱和水汽压
+ Np2 = 77.6/Tz2*(1000+4810/Tz2*e2); %
+ Npo2 = 77.6/To2*(1000+4810/To2*eo2);
+ DNp2 = Np2-Npo2;
+ zi =[0:50];
+ Ms2=Np2+0.157*z;
+if Rib2 >= 0 
+ B2 = log(z/zo)+beta/L2*(z-zo);
+ H2 = DNp2/(b*B2-DNp2*beta/L2) %波导高度
+ M2 = Ms2+zi/8-(0.125*H2/(1+5.2*H2/L2))*(log((zi+zo)/zo+5.2*zi/L2))
+ %不稳定情况下
+else
+ c2 = z/L2;
+   if c2 >= 0.01
+     faith_ccc = -4.5*c2;
+   elseif c2>= -0.026 && c2 < -0.001
+       faith_ccc = 10^(1.02*log(-c2)+0.69);
+   elseif c2>= -0.1 && c2 < -0.026
+         faith_ccc = 10^(0.776*log(-c2)+0.306);
+   elseif c2>= -1 && c2 < -0.1
+          faith_ccc = 10^(0.630*log(-c2)+0.16);
+   elseif c2>= -2.2 && c2 < -1
+          faith_ccc = 10^(0.414*log(-c2)+0.16);  
+   else
+          faith_ccc = 2;
+   end 
+ B2 = log(z/zo)-faith_ccc;
+ H2 = ((b*B2/DNp2)^4-4*4.5/L2*((b*B2/DNp2)^3))^(-1/4)
+ d2 = H2/L2 ;
+ n=1;
+ df=1;
+ while df > 0.001
+     if n == 1
+        f =1;
+     else
+        f = f1 ;
+     end 
+     f1 = (1-(20.8*zi*f/L)).^(1/4);
+     df = abs((f1-f)/f);
+     n = n+1;
+ end 
+ 
+ M2 = Ms2+zi/8-(0.125*H2/(1+5.2*H2/L2))*(log((zi+zo)/zo+5.2*zi/L2));
+end
+  
+if H1 <= H2
+   H = H1
+   M = M1
+else
+   Rib = 98*z*(Tz-To)/(u^2*Tz); %理查森数
+
+ % 修正
+ if Rib <=1
+    Rib = Rib;
+ else 
+   Rib = 1;
+ end
+ 
+ if Rib <= -3.75 
+    Y = 0.05; %经验剖面细数
+  elseif  Rib>-3.75 &&  Rib<= -0.12
+      Y = 0.065+0.004*Rib;
+ elseif  Rib>=-0.12 && Rib <= 0.14
+        Y = 0.109+0.367*Rib;
+ else 
+        Y = 0.155+0.021*Rib;
+ end 
+ 
+ L = 10*z*Y/Rib; %M-O长度
+ 
+ %稳定或中性情况下
+ es = 6.105*exp(25.22*t/Tz-5.31*log(Tz/273.2)); %测量高度空气饱和水汽压
+ e = es*rh/100;
+ eo = 6.105*exp(25.22*to/To-5.31*log(To/273.2)); %海面饱和水汽压
+ Np = 77.6/Tz*(1000+4810/Tz*e); %
+ Npo = 77.6/To*(1000+4810/To*eo);
+ DNp = Np-Npo;
+ zi =[0:50];
+ Ms=Np+0.157*z;
+if Rib >= 0 
+ B = log(z/zo)+beta/L*(z-zo);
+ H = DNp/(b*B-DNp*beta/L) %波导高度
+ M = Ms+zi/8-(0.125*H/(1+5.2*H/L))*(log((zi+zo)/zo+5.2*zi/L))
+ %不稳定情况下
+else
+ c = z/L;
+   if c >= -0.01
+     faith_c = -4.5*c;
+   elseif c>= -0.026 && c < -0.001
+       faith_c = 10^(1.02*log(-c)+0.69);
+   elseif c>= -0.1 && c < -0.026
+         faith_c = 10^(0.776*log(-c)+0.306);
+   elseif c>= -1 && c < -0.1
+          faith_c = 10^(0.630*log(-c)+0.16);
+   elseif c>= -2.2 && c < -1
+          faith_c = 10^(0.414*log(-c)+0.16);  
+   else
+          faith_c = 2;
+   end 
+ B = log(z/zo)-faith_c;
+ H = ((b*B/DNp)^4-4*4.5/L*((b*B/DNp)^3))^(-1/4)
+ d = H/L ;
+ n=1;
+ df=1;
+ while df > 0.001
+     if n == 1
+        f =1;
+     else
+        f = f1 ;
+     end 
+     f1 = (1-(20.8*zi*f/L)).^(1/4);
+     df = abs((f1-f)/f);
+     n = n+1;
+ end 
+ 
+ M = Ms+zi/8-(0.125*H/(1+5.2*H/L))*(log((zi+zo)/zo+5.2*zi/L));
+end
+end
+end
+ 
+ if H > 40 
+    H = 40;
+ elseif H < 0
+   H = 0   
+ end 
+ HH(i)=H;
+ MM(1:51,i)=M; 
+end 
+ 
+ 
