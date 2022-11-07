@@ -118,11 +118,11 @@ class DataUtils:
             # q 数据集时间是有缺失的我真无语住了
             # 这种情况就（合理地）认为，使用传入的时间戳 time 转换为临近的日作为 time_idx
             print(e)
-            year = time.localtime(time_).tm_year
-            month = time.localtime(time_).tm_mon
+            year_ = time.localtime(time_).tm_year
+            month_ = time.localtime(time_).tm_mon
             day = time.localtime(time_).tm_mday
             hour = time.localtime(time_).tm_hour
-            if hour >= 12 and day != 1 and day != TimeUtil.get_day_sum(year, month):
+            if hour >= 12 and day != 1 and day != TimeUtil.get_day_sum(year_, month_):
                 time_idx = day  # 加一天
             else:
                 time_idx = day - 1
@@ -142,5 +142,6 @@ class DataUtils:
 
 if __name__ == '__main__':
     # DataUtils.aem_data_to_npy('./AEM/AEM00041217-data.txt', './AEM/AEM00041217-data.npy')
-    # read_dictionary = np.load('./AEM/AEM00041217-data.npy', allow_pickle=True)
-    DataUtils.get_support_data(2018, 1, 'omega', 42.2, 42.2, 1514977200, 150)
+    read_dictionary = np.load('./AEM/AEM00041217-data.npy', allow_pickle=True)
+    pass
+    # DataUtils.get_support_data(2018, 1, 'q', 42.2, 42.2, 1514880149, 150)
