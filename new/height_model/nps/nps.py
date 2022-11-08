@@ -14,12 +14,6 @@ def nps_duct_height(t, RH, ts, u, P):
     """
     function nps_mode=duct_height(t,ts,RH,u,P)
     """
-    
-    t = 24.9
-    RH = 69
-    ts = 25.3
-    u = 5.8
-    P = 1006.7
 
     Beta = 1.25  # 阵风系数
     von = 0.4  # Karman常数
@@ -95,7 +89,7 @@ def nps_duct_height(t, RH, ts, u, P):
         zo = charn * usr * usr / grav + 0.11 * visa / usr
         rr = zo * usr / visa
         L = zu / zet
-        zoq = min(1.15e-4, 5.5e-5 / rr * .6)  # Fairall COARE3.O
+        zoq = min(1.15e-4, (5.5e-5 / rr * .6).real)  # Fairall COARE3.O
         zot = zoq
 
         usr = ut * von / (log(zu / zo) - psiu_nps(zu / L))
@@ -103,7 +97,7 @@ def nps_duct_height(t, RH, ts, u, P):
         qsr = -dq * von / (log(zq / zoq) - psit_nps(zq / L))
         Bf = -grav / tv * usr * (tsr + 0.61 * ta * qsr)
         if Bf.real > 0:
-            ug = Beta * (Bf * zi) ^ 0.333
+            ug = Beta * (Bf * zi)**0.333
         else:
             ug = 0.2
         ut = sqrt(du * du + ug * ug)
@@ -115,16 +109,16 @@ def nps_duct_height(t, RH, ts, u, P):
     # 计算温度、比湿廓线
     h0 = zo
     h = np.arange(51)  # [0, 1, ..., 50]
-    T_kuoxian = np.arange(51)
-    Q_kuoxian = np.arange(51)
+    T_kuoxian = np.arange(51).astype(complex)
+    Q_kuoxian = np.arange(51).astype(complex)
 
-    T_kuoxian[0] = ts+tsr/von*(log(h0/zot)-psit_nps(h0/L))-0.00976*h0
+    T_kuoxian[0] = ts + tsr / von * (log(h0 / zot) - psit_nps(h0 / L)) - 0.00976 * h0
     Q_kuoxian[0] = Qs + qsr / von * (log(h0 / zoq) - psit_nps(h0 / L))
     for i in range(1, len(h)):
         T_kuoxian[i] = ts + tsr / von * (log(h[i] / zot) - psit_nps(h[i] / L)) - 0.00976 * h[i]
         Q_kuoxian[i] = Qs + qsr / von * (log(h[i] / zoq) - psit_nps(h[i] / L))
 
-    P_kuoxian = np.zeros(51)
+    P_kuoxian = np.zeros(51).astype(complex)
     P_kuoxian[0] = P*exp(2 * grav * zp / Rgas / (ta * (1 + 0.61 * Q) + (ts + tdk) * (1 + 0.61 * Qs)))
 
     #  首先利用测量高度上的气压计算海平面气压
@@ -132,10 +126,25 @@ def nps_duct_height(t, RH, ts, u, P):
         P_kuoxian[i] = P_kuoxian[i - 1] * exp(2 * grav * (-1) / Rgas / ((T_kuoxian[i - 1] + tdk) * (1 + 0.61 * Q_kuoxian[i - 1]) + (T_kuoxian[i] + tdk) * (1 + 0.61 * Q_kuoxian[i])))
 
     #  计算修正折射率廓线
+    E = np.zeros(len(h)).astype(complex)
+    rh = np.zeros(len(h)).astype(complex)
+    M = np.zeros(len(h)).astype(complex)
+    
     for i in range(0, len(h)):
-        
+        E[i] = Q_kuoxian[i] * P_kuoxian[i] / (ee + (1 - ee) * Q_kuoxian[i])
+        rh[i] = 100 * E[i] / R_S(T_kuoxian[i], P_kuoxian[i])  # 相对湿度廓线
+        M[i] = 77.6 * P_kuoxian[i] / (T_kuoxian[i] + tdk) - (5.6 / (T_kuoxian[i] + tdk) - 3.75e5 / (T_kuoxian[i] + tdk)**2) * E[i] + 0.1568 * h[i]
 
+    # 修正折射率最小值对应的高度hh，即为蒸发波导高度
+    hh = np.min(M)
+
+    return hh
 
 
 if __name__ == '__main__':
-    nps_duct_height(1,1,1,1,1)
+    t = 24.9
+    RH = 69
+    ts = 25.3
+    u = 5.8
+    P = 1006.7
+    nps_duct_height(t, RH, ts, u, P)

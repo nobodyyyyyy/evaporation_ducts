@@ -16,8 +16,8 @@ def qsee(ts, P):
 def psiu_nps(zet):
     # fixme 我就把 zet 看成一个值了，有问题再说
 
-    if zet <= 0:
-        c = min(50, .35*zet)
+    if zet.real <= 0:
+        c = min(50., (.35 * zet).real)
         psi = -((1+2/3*zet) * 1.5+2/3*(zet-14.28) / exp(c)+8.525)
         return psi
 
@@ -33,15 +33,15 @@ def psiu_nps(zet):
 def psit_nps(zet):
     # fixme 同上
 
-    if zet <= 0:
-        c = min(50, .35*zet)
+    if zet.real <= 0:
+        c = min(50., (.35 * zet).real)
         psi = -((1+2/3*zet) * 1.5+2/3*(zet-14.28) / exp(c)+8.525)
         return psi
 
     x = (1 - 15 * zet) * .5
     psik = 2 * log((1 + x) / 2)
     x = (1 - 34 * zet) * .3333
-    psic = 1.5 * log((1 + x + x. * x) / 3) - sqrt(3) * atan((1 + 2 * x) / sqrt(3)) + 4 * atan(1) / sqrt(3)
+    psic = 1.5 * log((1 + x + x * x) / 3) - sqrt(3) * atan((1 + 2 * x) / sqrt(3)) + 4 * atan(1) / sqrt(3)
     f = zet * zet / (1 + zet * zet)
     psi = (1 - f) * psik + f * psic
     return psi
