@@ -1,6 +1,11 @@
 import bisect
 import time
 
+# vscode里面我需要额外配置
+# import sys
+# import os
+# sys.path.append(os.getcwd())
+
 import numpy as np
 import netCDF4 as nc
 from numpy import ndarray
@@ -12,6 +17,31 @@ class DataUtils:
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def txt_file_to_npy(dir_,dest_): # 经纬度和城市就不记啦，反正就俩文件
+        lst = []
+        temp = dict.fromkeys(["PRES", "HGNT", "TEMP", "DWPT", "RELH", "MIXR", "DRCT", "SPED", "THTA", "THTE", "THTV"])
+        with open(dir_, mode='r') as file:
+            line = file.readlines()
+        _ = 8
+        while _ < len(line):
+            temp["PRES"] = float(line[_][0:7].strip())
+            temp["HGNT"] = int(line[_][7:14].strip())
+            temp["TEMP"] = float(line[_][14:21].strip())
+            temp["DWPT"] = float(line[_][21:28].strip()) if line[_][21:28].strip() else None
+            temp["RELH"] = int(line[_][28:35].strip()) if line[_][28:35].strip() else None
+            temp["MIXR"] = float(line[_][35:42].strip()) if line[_][35:42].strip() else None
+            temp["DRCT"] = int(line[_][42:49].strip())
+            temp["SPED"] = float(line[_][49:56].strip())
+            temp["THTA"] = float(line[_][56:63].strip())
+            temp["THTE"] = float(line[_][63:70].strip()) if line[_][63:70].strip() else None
+            temp["THTV"] = float(line[_][70:].strip()) if line[_][70:].strip() else None
+            _ += 1
+            lst.append(temp.copy())
+        np.save(dest_, lst)
+
+
 
     @staticmethod
     def aem_data_to_npy(dir_, dest_):
@@ -142,6 +172,12 @@ class DataUtils:
 
 if __name__ == '__main__':
     # DataUtils.aem_data_to_npy('./AEM/AEM00041217-data.txt', './AEM/AEM00041217-data.npy')
-    read_dictionary = np.load('./AEM/AEM00041217-data.npy', allow_pickle=True)
-    pass
+    # read_dictionary = np.load('./AEM/AEM00041217-data.npy', allow_pickle=True)
+    # pass
     # DataUtils.get_support_data(2018, 1, 'q', 42.2, 42.2, 1514880149, 150)
+
+    # DataUtils.txt_file_to_npy(r'E:\test_data\test_data\test1.txt',r'E:\test_data\test_data\test1.npy')
+    # f= np.load(r'E:\test_data\test_data\test1.npy', allow_pickle=True)
+    # print(f)
+
+    pass
