@@ -5,6 +5,7 @@ import time
 # import sys
 # import os
 # sys.path.append(os.getcwd())
+import warnings
 
 import numpy as np
 import netCDF4 as nc
@@ -15,11 +16,30 @@ from new.Util.TimeUtil import TimeUtil
 
 class DataUtils:
 
+    _instance = None
+    _exist = False
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+
     def __init__(self):
-        pass
+        if not DataUtils._exist:
+            DataUtils._exist = True
+            self.nc_dataset_cache = {}
+            self.primary_dataset_cache = {}
+
 
     @staticmethod
-    def txt_file_to_npy(dir_,dest_): # 经纬度和城市就不记啦，反正就俩文件
+    def get_file_name(dir_):
+        return dir_.split('/')[-1]
+
+
+    @staticmethod
+    def txt_file_to_npy(dir_,dest_):
+        # todo 经纬度和城市就不记啦，反正就俩文件
         lst = []
         temp = dict.fromkeys(["PRES", "HGNT", "TEMP", "DWPT", "RELH", "MIXR", "DRCT", "SPED", "THTA", "THTE", "THTV"])
         with open(dir_, mode='r') as file:
@@ -45,6 +65,7 @@ class DataUtils:
 
     @staticmethod
     def aem_data_to_npy(dir_, dest_):
+        warnings.warn("Deprecated method", DeprecationWarning)
         try:
             store = []
             with open(dir_) as f:
@@ -120,7 +141,7 @@ class DataUtils:
 
 
     @staticmethod
-    def get_support_data(year:int, month:int, type_:str, lan:float, lng:float, time_, level=-1):
+    def get_support_data(year:int, month:int, type_:str, lan:float, lng:float, time_, level=-1, file_name=''):
         """
         获取辅助数据，主要是 nc 文件内容
         :param month:
@@ -130,11 +151,25 @@ class DataUtils:
         :param lng: 经度
         :param time_: 标准的【豪秒】级别时间戳
         :param level: air pressure level 只能取特定的取值，见文档
+        :param file_name: 如果需要直接指定文件名，传入该项
         :return: 所需 data
         """
         month = TimeUtil.format_month_or_day(month)
-        file = './AEM/{}.{}-{}.daily.nc'.format(type_, year, month)
-        dataset = nc.Dataset(file)
+
+        if file_name.strip() == '':
+            file = './AEM/{}.{}-{}.daily.nc'.format(type_, year, month)
+        else:
+            file = file_name
+        inst = DataUtils()
+        if file not in inst.nc_dataset_cache.keys():
+            dataset = nc.Dataset(file)
+            inst.nc_dataset_cache[DataUtils.get_file_name(file)] = dataset
+        else:
+            dataset = inst.nc_dataset_cache[DataUtils.get_file_name(file)]
+        if dataset is None:
+            print('get_support_data... Could not load dataset for file: {}'.format(file))
+            return
+
         nc_timestamp = TimeUtil.time_millis_2_nc_timestamp(time_)
         lats = np.array(dataset.variables['latitude'][:])
         lngs = np.array(dataset.variables['longitude'][:])
@@ -170,6 +205,7 @@ class DataUtils:
             return dataset.variables[type_][time_idx][level_idx][lat_idx][lng_idx]
 
 
+
 if __name__ == '__main__':
     # DataUtils.aem_data_to_npy('./AEM/AEM00041217-data.txt', './AEM/AEM00041217-data.npy')
     # read_dictionary = np.load('./AEM/AEM00041217-data.npy', allow_pickle=True)
@@ -180,4 +216,6 @@ if __name__ == '__main__':
     # f= np.load(r'E:\test_data\test_data\test1.npy', allow_pickle=True)
     # print(f)
 
+    # DataUtils.txt_file_to_npy('./CN/test1.txt', './CN/shantou.npy')
+    # DataUtils.txt_file_to_npy('./CN/test2.txt', './CN/haikou.npy')
     pass

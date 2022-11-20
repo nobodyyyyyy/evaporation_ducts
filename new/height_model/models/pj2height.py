@@ -1,10 +1,10 @@
 import math
 
-def pj2height(t, to, z, u, rh):
+def pj2height(t, rh, to, u, p, z):
     '''
     PS. 原版matlab代码里面貌似返回值还有一个M变量, 但不知什么意思，因为我们这里只需要高度, M变量的计算就不考虑了
     t: 空气温度
-    to: 海表温度
+    to: 海表温度 ts
     z: 测量高度
     u: 风速
     rh: 相对湿度

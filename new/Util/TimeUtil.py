@@ -1,5 +1,5 @@
 import time
-
+import datetime
 
 class TimeUtil:
 
@@ -27,6 +27,12 @@ class TimeUtil:
     @staticmethod
     def current_time_millis():
         return round(time.time() * 1000)
+
+
+    @staticmethod
+    def to_time_millis(year_, month_, day_, hr_, min_, sec_):
+        dt = datetime.datetime(year_, month_, day_, hr_, min_, sec_)
+        return int(time.mktime(dt.timetuple()))
 
 
     @staticmethod
@@ -64,3 +70,8 @@ class TimeUtil:
                 return 29
             else:
                 return 28
+
+
+if __name__ == '__main__':
+    print(TimeUtil.to_time_millis(2019,1,1,1,1,1))
+    pass

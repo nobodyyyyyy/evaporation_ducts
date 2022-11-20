@@ -4,16 +4,18 @@ import numpy as np
 
 from new.Util.DuctHeightUtil import R_S, qsee, psiu_nps, psit_nps
 
-zu = 12.5        # 风速测量高度12.5
-zt = 12.5        # 温度测量高度
-zq = 12.5        # 湿度测量高度
-zp = 12.5        # 气压测量高度
 
+def nps_duct_height(t, RH, ts, u, P, height=-1):
+    zu = 12.5  # 风速测量高度
+    zt = 12.5  # 温度测量高度
+    zq = 12.5  # 湿度测量高度
+    zp = 12.5  # 气压测量高度
 
-def nps_duct_height(t, RH, ts, u, P):
-    """
-    function nps_mode=duct_height(t,ts,RH,u,P)
-    """
+    # if height != -1:
+    #     zu = height
+    #     zt = height
+    #     zq = height
+    #     zp = height
 
     Beta = 1.25  # 阵风系数
     von = 0.4  # Karman常数
@@ -138,7 +140,7 @@ def nps_duct_height(t, RH, ts, u, P):
     # 修正折射率最小值对应的高度hh，即为蒸发波导高度
     hh = np.min(M)
 
-    return hh
+    return hh.real
 
 
 if __name__ == '__main__':

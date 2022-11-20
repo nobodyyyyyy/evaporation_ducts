@@ -10,12 +10,9 @@ ts = 21.2
 u = 7.6
 P = 1021.2
 P = 1009.54
-zu = 2.5  # 风速测量高度12.5
-zt = 2.5  # 温度测量高度
-zq = 2.5  # 湿度测量高度
 
 
-def babin_duct_height(t, ts, RH, u, P):
+def babin_duct_height(t, RH, ts, u, P, height=-1):
     """
     :param t: 气温   摄氏度
     :param ts: 海表水温   摄氏度
@@ -24,6 +21,12 @@ def babin_duct_height(t, ts, RH, u, P):
     :param P: 大气压    百帕
     :return: H      波导高度    米
     """
+
+    zu = 12.5  # 风速测量高度12.5
+    zt = 12.5  # 温度测量高度
+    zq = 12.5  # 湿度测量高度
+    # if height != -1:
+    #     zu = zt = zq = height
 
     #  参数设定
     Beta = 1.2  # 阵风系数
@@ -145,7 +148,7 @@ def babin_duct_height(t, ts, RH, u, P):
             else:
                 H1 = H
 
-    return H
+    return H.real
 
 
 if __name__ == '__main__':

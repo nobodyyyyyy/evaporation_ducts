@@ -4,3 +4,6 @@ venv/*
 data/__pycache__/algorithm.cpython-37.pyc
 .idea/workspace.xml
 /new/data/AEM
+/new/data/CN
+
+/my/
