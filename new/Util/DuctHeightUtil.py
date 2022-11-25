@@ -96,3 +96,39 @@ def atmospheric_refractive_index_M(t, p, rh, z):
     t_k = degrees2kelvins(t)
     m = 77.6 * (p + 4810 * e / t_k) / t_k + 0.157 * z
     return m.real
+
+
+def get_duct_height(m_list, z_list, caller=''):
+    """
+    获取波导高度前要不要先判断波导类型？
+    由论文可见表面波导和蒸发波导的廓线差不多，故当作一起处理
+    :param m_list: 大气折射率
+    :param z_list: 高度
+    :param caller:
+    :return: 波导高度
+    """
+    if caller == '':
+        caller = 'get_duct_height'
+    pre = m_list[1] - m_list[0]  # todo (exception) we assume the len is always big enough
+    # True: 悬空波导；False：蒸发波导或表面波导
+    _flag = True if pre > 0 else False
+    pre = int(pre)  # 刚开始【不能】转为整数
+    z1 = m1 = -1
+    # debug only
+    # z1_pos = -1
+    for _ in range(2, len(m_list)):
+        sub = int(m_list[_] - m_list[_ - 1])
+        if sub ^ pre < 0:
+            if not _flag:
+                return z_list[_ - 1], m_list[_ - 1]
+            if z1 != -1 and m1 != -1:
+                # print('[debug] get_duct_height... z1:{}, z2:{}, z1_pos:{}, z2_pos:{}'.
+                #       format(z1, z_list[_ - 1], z1_pos, _ - 1))
+                return z_list[_ - 1] - z1, abs(m_list[_ - 1] - m1)
+            # 找第二个拐点
+            z1 = z_list[_ - 1]
+            m1 = m_list[_ - 1]
+            # z1_pos = _ - 1
+        pre = sub
+    print('{}... cannot get duct height'.format(caller))
+    return -1, -1

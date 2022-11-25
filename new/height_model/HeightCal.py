@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from openpyxl import Workbook
 
-from new.Util.DuctHeightUtil import kelvins2degrees, atmospheric_refractive_index_M
+from new.Util.DuctHeightUtil import kelvins2degrees, atmospheric_refractive_index_M, get_duct_height
 from new.data.DataUtil import DataUtils
 from new.Util.TimeUtil import TimeUtil
 from new.height_model.models.babin import babin_duct_height
@@ -135,21 +135,14 @@ class HeightCal:
                 continue
             _Ms.append(atmospheric_refractive_index_M(t, p, eh, h))
             _Zs.append(h)
-        # todo (exception) we assume the len is always big enough
-        pre = int(_Ms[1] - _Ms[0])
-        for _ in range(2, len(_Ms)):
-            sub = int(_Ms[_] - _Ms[_ - 1])
-            if sub ^ pre < 0:
-                return _Zs[_ - 1], _Ms[_ - 1]
-            pre = sub
-        return -1, -1
+        return get_duct_height(_Ms, _Zs, caller='cal_real_height')
 
 
 if __name__ == '__main__':
     c = HeightCal()
-    # c.cal_height('../data/CN/haikou.npy', 'babin', 2021, 11, 29, 23.350, 116.670)
-    c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=5)
-    c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
+    c.cal_height('../data/CN/haikou.npy', 'nps', 2021, 11, 29, 23.350, 116.670, nrows=1)
+    # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=5)
+    # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
     pass
 
