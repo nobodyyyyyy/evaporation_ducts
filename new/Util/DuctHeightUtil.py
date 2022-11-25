@@ -73,3 +73,26 @@ def fait(zet):
     f = zet * zet / (1 + zet * zet)
     psi = (1 - f) / x + f / y
     return psi
+
+
+def kelvins2degrees(kelvins):
+    return kelvins - 273.15
+
+
+def degrees2kelvins(degrees):
+    return degrees + 273.15
+
+
+def atmospheric_refractive_index_M(t, p, rh, z):
+    """
+    计算得到某一高度的大气折射率 M
+    :param t: 温度 C
+    :param p: 气压 hPa
+    :param rh: 相对湿度  rh = e / E %
+    :param z: 高度
+    """
+    E = 6.112 * exp(17.67 * t / (t + 243.5))  # 饱和水汽压【修正的 Tetens 公式】
+    e = E * rh / 100
+    t_k = degrees2kelvins(t)
+    m = 77.6 * (p + 4810 * e / t_k) / t_k + 0.157 * z
+    return m.real

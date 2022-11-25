@@ -26,12 +26,11 @@
 % 入口参数设定
 % --------------
 
-t = 20.9;
-RH = 74;
-ts = 21.2;
-u = 7.6;
-P = 1021.2;
-P = 1009.54;
+t = 20;
+RH = 79;
+ts = 23.78681;
+u = 4.1;
+P = 1011.4;
 zu = 2.5;       % 风速测量高度12.5
 zt = 2.5;       % 温度测量高度
 zq = 2.5;       % 湿度测量高度
@@ -154,8 +153,8 @@ C  = C3;
 tz = tsr/(von*(zu+zo))*fait((zu+zo)/L);
 qz = qsr/(von*(zu+zo))*fait((zu+zo)/L);
 Mz = A+B*qz+C*qz;
-syms z
-M=int(Mz,z,zo,50);
+%syms z
+%M=int(Mz,z,zo,50);
 
 Conv = 1;
 
