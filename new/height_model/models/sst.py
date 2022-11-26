@@ -29,6 +29,7 @@ def evap_duct_SST(t, RH, ts, u, P, height):
     zu = 12
     zt = 12
     zq = 12
+    zz = 12
     # if height != -1:
     #     # 风速测量高度
     #     zu = height
@@ -36,8 +37,8 @@ def evap_duct_SST(t, RH, ts, u, P, height):
     #     zt = height
     #     # 湿度测量高度
     #     zq = height
-
-    zz = 12
+    #
+    #     zz = height
     # 阵风系数
     Beta = 1.25
     # Karman常数
@@ -150,6 +151,7 @@ def evap_duct_SST(t, RH, ts, u, P, height):
          (-Rib / (1 - Rib)) * Lom ** -1 * Loh ** -1, Loh ** -2, Lom ** -2, Lom ** -1 * Loh ** -1,
          (-Rib / (1 - Rib)) * Loh ** -1,
          (-Rib / (1 - Rib)) * Lom ** -1, Loh ** -1, Lom ** -1, (-Rib / (1 - Rib)), 1])
+    ZL = None
     if np.isnan(Rib) or (Rib == 0) or (Rib <= -5):
         zs = 1
         CM = np.nan
@@ -501,32 +503,34 @@ def evap_duct_SST(t, RH, ts, u, P, height):
                                        -212.9, 1.6941, 0, 0, -5.0047, -0.50742, 1.4164],
                                       [0, 0, 0, 0, 0, 0, 0, 0, 0, -35.397, 0, 0, 0, 0, 32.746, 10.744, -19.461, 0, 0, 0,
                                        -3.3425, -0.53463, 1.3388]])
-            if Rib < 0 and Rib > -2 and zz / z0m <= 80 and zz / z0m >= 10 and z0m / z0h >= 0.607 and z0m / z0h <= 10:
+            if 0 > Rib > -2 and 80 >= zz / z0m >= 10 and z0m / z0h >= 0.607 and z0m / z0h <= 10:
                 # print(region 9")
                 ZL = Rib * Lom ** 2 / Loh * sum(bet3 * coefficients3[0, :])
-            elif Rib < 0 and Rib > -2 and zz / z0m <= 80 and zz / z0m >= 10 and z0m / z0h > 10 and z0m / z0h <= 1.069 * 10 ** 13:
+            elif 0 > Rib > -2 and 10 <= zz / z0m <= 80 < z0m / z0h <= 1.069 * 10 ** 13:
                 # print(region 10")
                 ZL = Rib * Lom ** 2 / Loh * sum(bet3 * coefficients3[1, :])
-            elif Rib < 0 and Rib > -2 and zz / z0m <= 10 ** 5 and zz / z0m > 80 and z0m / z0h >= 0.607 and z0m / z0h <= 10:
+            elif 0 > Rib > -2 and 10 ** 5 >= zz / z0m > 80 and 0.607 <= z0m / z0h <= 10:
                 # print(region 11")
                 ZL = Rib * Lom ** 2 / Loh * sum(bet3 * coefficients3[2, :])
-            elif Rib < 0 and Rib > -2 and zz / z0m <= 10 ** 5 and zz / z0m > 80 and z0m / z0h > 10 and z0m / z0h <= 1.069 * 10 ** 13:
+            elif 0 > Rib > -2 and 10 ** 5 >= zz / z0m > 80 and 10 < z0m / z0h <= 1.069 * 10 ** 13:
                 # print(region 12")
                 ZL = Rib * Lom ** 2 / Loh * sum(bet3 * coefficients3[3, :])
-            elif Rib <= -2 and Rib > -5 and zz / z0m <= 80 and zz / z0m >= 10 and z0m / z0h >= 0.607 and z0m / z0h <= 10:
+            elif -2 >= Rib > -5 and 80 >= zz / z0m >= 10 and z0m / z0h >= 0.607 and z0m / z0h <= 10:
                 # print(region 13")
                 ZL = Rib * Lom ** 2 / Loh * sum(bet3 * coefficients3[4, :])
-            elif Rib <= -2 and Rib > -5 and zz / z0m <= 80 and zz / z0m >= 10 and z0m / z0h > 10 and z0m / z0h <= 1.069 * 10 ** 13:
+            elif -2 >= Rib > -5 and 80 >= zz / z0m >= 10 and 10 < z0m / z0h <= 1.069 * 10 ** 13:
                 # print(region 14")
                 ZL = Rib * Lom ** 2 / Loh * sum(bet3 * coefficients3[5, :])
-            elif Rib <= -2 and Rib > -5 and zz / z0m <= 10 ** 5 and zz / z0m > 80 and z0m / z0h >= 0.607 and z0m / z0h <= 10:
+            elif -2 >= Rib > -5 and zz / z0m <= 10 ** 5 > 80 and 0.607 <= z0m / z0h <= 10:
                 # print(region 15")
                 ZL = Rib * Lom ** 2 / Loh * sum(bet3 * coefficients3[6, :])
-            elif Rib <= -2 and Rib > -5 and zz / z0m <= 10 ** 5 and zz / z0m > 80 and z0m / z0h > 10 and z0m / z0h <= 1.069 * 10 ** 13:
+            elif -2 >= Rib > -5 and 10 ** 5 >= zz / z0m > 80 and 10 < z0m / z0h <= 1.069 * 10 ** 13:
                 # print(region 16")
                 ZL = Rib * Lom ** 2 / Loh * sum(bet3 * coefficients3[7, :])
-
-        if ZL < 0:
+        if ZL is None or np.isnan(ZL) or ZL == 0:
+            zphistarm = np.nan
+            zphistarh = np.nan
+        elif ZL < 0:
             zxx = (1.0 - cgammam * ZL) ** calpham
             zyy = (1.0 - cgammah * ZL) ** calphah
             zpsim = 2.0 * np.log((1.0 + zxx) / 2.0) + np.log((1.0 + zxx ** 2) / 2.0) - 2.0 * math.atan(zxx) + p2
@@ -550,9 +554,6 @@ def evap_duct_SST(t, RH, ts, u, P, height):
                         ZLmcorr + (1.0 + ZLmcorr ** cbb) ** (1.0 / cbb))
             zphistarh = 1.0 + ccc * (ZLhcorr + ZLhcorr ** cdd * (1.0 + ZLhcorr ** cdd) ** ((1.0 - cdd) / cdd)) / (
                         ZLhcorr + (1.0 + ZLhcorr ** cdd) ** (1.0 / cdd))
-        elif np.isnan(ZL) or ZL == 0:
-            zphistarm = np.nan
-            zphistarh = np.nan
         zpsistarm = zphistarm * zfacM
         zpsistarh = zphistarh * zfacH
         CM = 0.16 / ((zL0M - zpsim + zpsim0 + zpsistarm) ** 2)

@@ -140,7 +140,7 @@ class HeightCal:
 
 if __name__ == '__main__':
     c = HeightCal()
-    c.cal_height('../data/CN/haikou.npy', 'babin', 2021, 11, 29, 20, 110.250, nrows=1)
+    c.cal_height('../data/CN/haikou.npy', 'sst', 2021, 11, 29, 20, 110.250, nrows=1)
     # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=5)
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
