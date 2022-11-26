@@ -31,9 +31,9 @@ RH = 79;
 ts = 23.78681;
 u = 4.1;
 P = 1011.4;
-zu = 2.5;       % 风速测量高度12.5
-zt = 2.5;       % 温度测量高度
-zq = 2.5;       % 湿度测量高度
+zu = 65;       % 风速测量高度12.5
+zt = 65;       % 温度测量高度
+zq = 65;       % 湿度测量高度
 
 % --------------
 % 参数设定
@@ -180,27 +180,3 @@ end
    
 %
 disp(H)
-
-a=load('17.txt');
-x=a(1:6,4);
-y1=a(1:6,1);
-y2=a(1:6,2);
-y3=a(1:6,3);
-dyx=gradient(y3)./gradient(x);
-figure(1)
-subplot(1,3,1)
-plot(t,h,'-r',y1,x,'.k')
-title('01072719');
-ylabel(gca,'垂直高度（米）');
-xlabel(gca,'温度（k）');
-subplot(1,3,2)
-plot(e,h,'-r',y2,x,'.k');
-title('01072719');
-ylabel(gca,'垂直高度（米）');
-xlabel(gca,'水汽压（hPa）');
-subplot(1,3,3)
-plot(Nh,h,'-r',y3,x,'.k')
-title('01072719');
-ylabel(gca,'垂直高度（米）');
-xlabel(gca,'修正折射指数（M）');
-print(gcf,'-dtiff','蒸发波导01072719-2','-r300');

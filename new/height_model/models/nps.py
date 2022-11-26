@@ -1,3 +1,4 @@
+import sys
 from cmath import sqrt, log, exp
 
 import numpy as np
@@ -6,16 +7,16 @@ from new.Util.DuctHeightUtil import R_S, qsee, psiu_nps, psit_nps
 
 
 def nps_duct_height(t, RH, ts, u, P, height=-1):
-    zu = 12.5  # 风速测量高度
-    zt = 12.5  # 温度测量高度
-    zq = 12.5  # 湿度测量高度
-    zp = 12.5  # 气压测量高度
+    # zu = 12.5  # 风速测量高度
+    # zt = 12.5  # 温度测量高度
+    # zq = 12.5  # 湿度测量高度
+    # zp = 12.5  # 气压测量高度
 
-    # if height != -1:
-    #     zu = height
-    #     zt = height
-    #     zq = height
-    #     zp = height
+    if height != -1:
+        zu = height
+        zt = height
+        zq = height
+        zp = height
 
     Beta = 1.25  # 阵风系数
     von = 0.4  # Karman常数
@@ -91,7 +92,7 @@ def nps_duct_height(t, RH, ts, u, P, height=-1):
         zo = charn * usr * usr / grav + 0.11 * visa / usr
         rr = zo * usr / visa
         L = zu / zet
-        zoq = min(1.15e-4, (5.5e-5 / rr * .6).real)  # Fairall COARE3.O
+        zoq = min(1.15e-4, (5.5e-5 / rr**.6).real)  # Fairall COARE3.O
         zot = zoq
 
         usr = ut * von / (log(zu / zo) - psiu_nps(zu / L))
@@ -136,11 +137,18 @@ def nps_duct_height(t, RH, ts, u, P, height=-1):
         E[i] = Q_kuoxian[i] * P_kuoxian[i] / (ee + (1 - ee) * Q_kuoxian[i])
         rh[i] = 100 * E[i] / R_S(T_kuoxian[i], P_kuoxian[i])  # 相对湿度廓线
         M[i] = 77.6 * P_kuoxian[i] / (T_kuoxian[i] + tdk) - (5.6 / (T_kuoxian[i] + tdk) - 3.75e5 / (T_kuoxian[i] + tdk)**2) * E[i] + 0.1568 * h[i]
-
     # 修正折射率最小值对应的高度hh，即为蒸发波导高度
-    hh = np.min(M)
 
-    return hh.real
+    _min = sys.maxsize
+    idx = -1
+    for _ in range(len(M)):
+        if M[_] < _min:
+            _min = M[_]
+            idx = _
+    if idx == -1:
+        print('nps... error: cannot cal height')
+        return -1
+    return h[idx]
 
 
 if __name__ == '__main__':

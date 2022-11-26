@@ -22,11 +22,11 @@ def babin_duct_height(t, RH, ts, u, P, height=-1):
     :return: H      波导高度    米
     """
 
-    zu = 12.5  # 风速测量高度12.5
-    zt = 12.5  # 温度测量高度
-    zq = 12.5  # 湿度测量高度
-    # if height != -1:
-    #     zu = zt = zq = height
+    # zu = 12.5  # 风速测量高度12.5
+    # zt = 12.5  # 温度测量高度
+    # zq = 12.5  # 湿度测量高度
+    if height != -1:
+        zu = zt = zq = height
 
     #  参数设定
     Beta = 1.2  # 阵风系数
@@ -136,9 +136,11 @@ def babin_duct_height(t, RH, ts, u, P, height=-1):
     Conv = 1
 
     if zet.real >= 0:
+        # print('稳定条件下的蒸发波导高度计算')
         H = -(B * tsr + C * qsr) / (von * (A + 0.157) + 5 / L * (B * tsr + C * qsr))
 
     else:
+        # print('不稳定条件下的蒸发波导高度计算')
         H1 = -(B * tsr + C * qsr) * fait(zet) / von / (A + 0.157)
         while Conv == 1:
             zet1 = von * grav * H1 * (tsr + 0.61 * ta * qsr) / ta / (usr**2)
