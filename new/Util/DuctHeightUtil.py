@@ -4,6 +4,10 @@ import numpy as np
 
 
 def R_S(t: np.array, p: np.array):
+    try:
+        6.112 * exp(17.502 * t / (t + 240.97)) * (1.0007 + 3.46e-6 * p)
+    except OverflowError as e:
+        return 1
     return 6.112 * exp(17.502 * t / (t + 240.97)) * (1.0007 + 3.46e-6 * p)
 
 

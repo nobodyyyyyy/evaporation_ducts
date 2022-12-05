@@ -1,8 +1,10 @@
+from decimal import Decimal
+
 import numpy as np
-from matplotlib import pyplot as plt
 from openpyxl import Workbook
 
 from new.Util.DuctHeightUtil import kelvins2degrees, atmospheric_refractive_index_M, get_duct_height
+from new.Util.MathUtil import MathUtil
 from new.data.DataUtil import DataUtils
 from new.Util.TimeUtil import TimeUtil
 from new.height_model.models.babin import babin_duct_height
@@ -40,10 +42,10 @@ class HeightCal:
     def get_sst(year:int, month:int, day:int, lan:float, lng:float, file_name=''):
         time_ = TimeUtil.to_time_millis(year, month, day, 0, 0, 0)
         sst_kelvins = DataUtils.get_support_data(year, month, 'sst', lan, lng, time_, file_name=file_name)
-        return kelvins2degrees(sst_kelvins)
+        # return kelvins2degrees(sst_kelvins)
 
 
-    def cal_height(self, data_dir, model, year, month, day, lan, lng, sst=0, nrows=1):
+    def get_data(self, data_dir, year, month, day, lan, lng, sst=0):
         if sst == 0:
             sst = HeightCal.get_sst(year, month, day, lan, lng, file_name='../data/CN/ERA5_hourly_00_sst_2021.nc')
         name = DataUtils.get_file_name(data_dir)
@@ -52,7 +54,11 @@ class HeightCal:
         else:
             dataset = np.load(data_dir, allow_pickle=True)
             self.dataset_cache[name] = dataset
+        return dataset, sst
 
+
+    def cal_height(self, data_dir, model, year, month, day, lan, lng, sst=0, nrows=1):
+        dataset, sst = self.get_data(data_dir, year, month, day, lan, lng, sst)
         if model in self.model_entry.keys():
             func = self.models[self.model_entry[model]]
         else:
@@ -72,7 +78,7 @@ class HeightCal:
             p = e['PRES']  # 压强
             h = e['HGNT']  # 测量高度
             if t is None or eh is None or u is None or p is None:
-                print('cal_height... data incomplete: [{}, {}, {}, {}, {}]'.format(t, eh, sst, u, p, h))
+                print('cal_height... data incomplete: [{}, {}, {}, {}, {}, {}]'.format(t, eh, sst, u, p, h))
                 res.append(None)
                 continue
             res.append(func(t, eh, sst, u, p, h))
@@ -138,9 +144,122 @@ class HeightCal:
         return get_duct_height(_Ms, _Zs, caller='cal_real_height')
 
 
+    def sensitivity_analyze(self, data_dir, model, year, month, day, lan, lng, sst=0, output_name=''):
+        """
+        敏感性分析
+        """
+        dataset, sst = self.get_data(data_dir, year, month, day, lan, lng, sst)
+        res = {}
+        # todo: model all
+        if model in self.model_entry.keys():
+            func = self.models[self.model_entry[model]]
+        else:
+            print('cal_height... Unexpected model: {}'.format(model))
+            return
+        e = dataset[0]
+        t = e['TEMP']  # 气温
+        eh = e['RELH']  # 相对湿度
+        u = e['SPED']  # 风速
+        p = e['PRES']  # 压强
+        h = e['HGNT']  # 测量高度
+        if t is None or eh is None or u is None or p is None:
+            print('sensitivity_analyze... data incomplete: [{}, {}, {}, {}, {}, {}]'.format(t, eh, sst, u, p, h))
+            return
+        new_data = self.disturbance_prepare(t, eh, sst, u, p, h)
+        for r in new_data:
+            # r 的顺序和 disturbance_prepare 传参顺序保持一致
+            res[model].append(func(r[0], r[1], r[2], r[3], r[4], r[5]))
+        # print(res)
+
+        # wrt
+        if output_name == '':
+            output_name = 'output'
+        if output_name.split('.')[-1] != 'xlsx' or output_name.split('.')[-1] != 'xls':
+            output_name += '.xlsx'
+
+        return res, new_data
+
+
+    def record_sensitivity_analyze_results(self, data_dir, year, month, day, lan, lng, sst=0, output_name=''):
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'result'
+        header = ['气温', '相对湿度', '海温', '风速', '压强', '测量高度']
+        res = []
+
+        # wrt
+        if output_name == '':
+            output_name = 'output'
+        if output_name.split('.')[-1] != 'xlsx' or output_name.split('.')[-1] != 'xls':
+            output_name += '.xlsx'
+
+        ws.append(header)
+
+        dataset, sst = self.get_data(data_dir, year, month, day, lan, lng, sst)
+        e = dataset[0]
+        t = e['TEMP']  # 气温
+        eh = e['RELH']  # 相对湿度
+        u = e['SPED']  # 风速
+        p = e['PRES']  # 压强
+        h = e['HGNT']  # 测量高度
+        if t is None or eh is None or u is None or p is None:
+            print('record_sensitivity_analyze_results... '
+                  'data incomplete: [{}, {}, {}, {}, {}, {}]'.format(t, eh, sst, u, p, h))
+            return
+
+
+        # for i in range(nrows):
+        #     e = input_data[i]
+        #     line = [e['TEMP'], e['RELH'], sst, e['SPED'], e['PRES'], e['HGNT']]
+        #     for j in range(len(self.model_entry.keys())):
+        #         line.append(res[j][i])
+        #     ws.append(line)
+        # wb.save(filename=output_name)
+
+        pass
+
+
+    @staticmethod
+    def disturbance_prepare(t, eh, sst, u, p, h, lowers=None, uppers=None, gaps=None, round_first=False):
+        """
+        扰动数据准备
+        论文里面是修改 u风速{1,4,7}、t气温[-5,5]、eh湿度[50, 100, GAP:5]
+        初步扰动约束：
+        u   gap:1   range: ±3
+        t   gap:1   range: ±5
+        eh  gap:5%  range: 50~100% (±25%?)
+        """
+        ret = []
+        if round_first:
+            res = MathUtil.round(u, t, eh)
+            u, t, eh = res[0], res[1], res[2]
+        if lowers is None:
+            lowers = [-3, -5, -25]
+        if uppers is None:
+            uppers = [3, 5, 25]
+        if gaps is None:
+            gaps = [1, 1, 5]
+        for u_gap in range(lowers[0], uppers[0] + gaps[0], gaps[0]):
+            cur_u = MathUtil.add(u, u_gap)
+            if cur_u < 0:
+                continue
+            for t_gap in range(lowers[1], uppers[1] + gaps[1], gaps[1]):
+                cur_t = MathUtil.add(t, t_gap)
+                for eh_gap in range(lowers[2], uppers[2] + gaps[2], gaps[2]):
+                    cur_eh = MathUtil.add(eh, eh_gap)
+                    if cur_eh > 100 or cur_eh < 0:
+                        continue
+                    # 生成扰动数据
+                    # 当前仅针对 t eh u 扰动
+                    ret.append([cur_t, cur_eh, sst, cur_u, p, h])
+
+        return ret
+
+
 if __name__ == '__main__':
     c = HeightCal()
-    c.cal_height('../data/CN/haikou.npy', 'sst', 2021, 11, 29, 20, 110.250, nrows=1)
+    c.sensitivity_analyze('../data/CN/haikou.npy', 'nps', 2021, 11, 29, 20, 110.250)
+    # print(c.disturbance_prepare(23, 71, 23.231, 4.1, 1021, 65))
     # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=5)
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
