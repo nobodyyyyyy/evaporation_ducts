@@ -42,7 +42,7 @@ class HeightCal:
     def get_sst(year:int, month:int, day:int, lan:float, lng:float, file_name=''):
         time_ = TimeUtil.to_time_millis(year, month, day, 0, 0, 0)
         sst_kelvins = DataUtils.get_support_data(year, month, 'sst', lan, lng, time_, file_name=file_name)
-        # return kelvins2degrees(sst_kelvins)
+        return kelvins2degrees(sst_kelvins)
 
 
     def get_data(self, data_dir, year, month, day, lan, lng, sst=0):
@@ -146,16 +146,25 @@ class HeightCal:
 
     def sensitivity_analyze(self, data_dir, model, year, month, day, lan, lng, sst=0, output_name=''):
         """
-        敏感性分析
+        单模型，敏感性分析
+        或全模型（model == 'all'）
         """
         dataset, sst = self.get_data(data_dir, year, month, day, lan, lng, sst)
         res = {}
-        # todo: model all
-        if model in self.model_entry.keys():
-            func = self.models[self.model_entry[model]]
+        func_arr = []
+        header = ['气温', '相对湿度', '海温', '风速', '压强', '测量高度']
+        if model.lower() != 'all':
+            if model in self.model_entry.keys():
+                func_arr.append(self.models[self.model_entry[model]])
+                header.append(model)
+            else:
+                print('cal_height... Unexpected model: {}'.format(model))
+                return
         else:
-            print('cal_height... Unexpected model: {}'.format(model))
-            return
+            func_arr = self.models
+            for model_name in self.model_entry.keys():
+                header.append(model_name)
+        # 只关心第一条
         e = dataset[0]
         t = e['TEMP']  # 气温
         eh = e['RELH']  # 相对湿度
@@ -166,57 +175,41 @@ class HeightCal:
             print('sensitivity_analyze... data incomplete: [{}, {}, {}, {}, {}, {}]'.format(t, eh, sst, u, p, h))
             return
         new_data = self.disturbance_prepare(t, eh, sst, u, p, h)
+
+        tmp_res = []
         for r in new_data:
-            # r 的顺序和 disturbance_prepare 传参顺序保持一致
-            res[model].append(func(r[0], r[1], r[2], r[3], r[4], r[5]))
-        # print(res)
+            model_res = []
+            for _model in func_arr:
+                try:
+                    # r 的顺序和 disturbance_prepare 传参顺序保持一致
+                    height = _model(r[0], r[1], r[2], r[3], r[4], r[5])
+                except Exception as e:
+                    # 有什么错我们都不会终止
+                    print('sensitivity_analyze... t={}, eh={}, u={}, p={}, h={} error:{}'.format(t, eh, u, p, h, e))
+                    height = -999
+                model_res.append(height)
+            tmp_res.append(model_res)
 
         # wrt
-        if output_name == '':
-            output_name = 'output'
-        if output_name.split('.')[-1] != 'xlsx' or output_name.split('.')[-1] != 'xls':
-            output_name += '.xlsx'
-
-        return res, new_data
-
-
-    def record_sensitivity_analyze_results(self, data_dir, year, month, day, lan, lng, sst=0, output_name=''):
         wb = Workbook()
         ws = wb.active
         ws.title = 'result'
-        header = ['气温', '相对湿度', '海温', '风速', '压强', '测量高度']
-        res = []
 
-        # wrt
         if output_name == '':
             output_name = 'output'
         if output_name.split('.')[-1] != 'xlsx' or output_name.split('.')[-1] != 'xls':
             output_name += '.xlsx'
 
+        # record
         ws.append(header)
 
-        dataset, sst = self.get_data(data_dir, year, month, day, lan, lng, sst)
-        e = dataset[0]
-        t = e['TEMP']  # 气温
-        eh = e['RELH']  # 相对湿度
-        u = e['SPED']  # 风速
-        p = e['PRES']  # 压强
-        h = e['HGNT']  # 测量高度
-        if t is None or eh is None or u is None or p is None:
-            print('record_sensitivity_analyze_results... '
-                  'data incomplete: [{}, {}, {}, {}, {}, {}]'.format(t, eh, sst, u, p, h))
-            return
+        assert len(new_data) == len(tmp_res)
+        for _ in range(len(new_data)):
+            ws.append(new_data[_] + tmp_res[_])
 
+        wb.save(filename=output_name)
 
-        # for i in range(nrows):
-        #     e = input_data[i]
-        #     line = [e['TEMP'], e['RELH'], sst, e['SPED'], e['PRES'], e['HGNT']]
-        #     for j in range(len(self.model_entry.keys())):
-        #         line.append(res[j][i])
-        #     ws.append(line)
-        # wb.save(filename=output_name)
-
-        pass
+        return res
 
 
     @staticmethod
@@ -258,9 +251,9 @@ class HeightCal:
 
 if __name__ == '__main__':
     c = HeightCal()
-    c.sensitivity_analyze('../data/CN/haikou.npy', 'nps', 2021, 11, 29, 20, 110.250)
+    # c.sensitivity_analyze('../data/CN/haikou.npy', 'all', 2021, 11, 29, 20, 110.250, output_name='sensi')
     # print(c.disturbance_prepare(23, 71, 23.231, 4.1, 1021, 65))
-    # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=5)
+    c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=1)
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
     pass
