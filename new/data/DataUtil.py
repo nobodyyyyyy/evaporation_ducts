@@ -1,4 +1,6 @@
 import bisect
+import os
+import re
 import time
 
 # vscode里面我需要额外配置
@@ -38,29 +40,48 @@ class DataUtils:
 
 
     @staticmethod
-    def txt_file_to_npy(dir_,dest_):
-        # todo 经纬度和城市就不记啦，反正就俩文件
-        lst = []
-        temp = dict.fromkeys(["PRES", "HGNT", "TEMP", "DWPT", "RELH", "MIXR", "DRCT", "SPED", "THTA", "THTE", "THTV"])
+    def txt_file_to_npy(dir_, dest_):
+        """
+        探空资料处理
+        :param dir_:
+        :param dest_: 【重要】只用写需要生成的文件夹位置即可，文件名不用设置
+        :return:
+        """
+
+        os.makedirs('folder', exist_ok=True)
         with open(dir_, mode='r') as file:
             line = file.readlines()
+
+        # bugfix: 12/9/2022 yrt 原本代码无法支持数据缺失和数据长度异常、过大等问题
+        # 由于数据是右对齐的，所以取 header 的最右边的列，可以拿到对应的数据右边界
+        header = line[5]
+        col_index = [0]
+        _l = -1
+        processing = False
+        for _r in range(len(header)):
+            if header[_r] == ' ' and _l == -1:
+                continue
+            elif header[_r] != ' ' and not processing:
+                _l = _r
+                processing = True
+            elif header[_r] == ' ' and processing:
+                processing = False
+                col_index.append(_r)
+                _l = _r
+        col_index.append(_r)
+
+        lst = []
+        entries = ["PRES", "HGNT", "TEMP", "DWPT", "RELH", "MIXR", "DRCT", "SPED", "THTA", "THTE", "THTV"]
+        temp = dict.fromkeys(entries)
         _ = 8
-        while _ < len(line):
-            temp["PRES"] = float(line[_][0:7].strip())
-            temp["HGNT"] = int(line[_][7:14].strip())
-            temp["TEMP"] = float(line[_][14:21].strip())
-            temp["DWPT"] = float(line[_][21:28].strip()) if line[_][21:28].strip() else None
-            temp["RELH"] = int(line[_][28:35].strip()) if line[_][28:35].strip() else None
-            temp["MIXR"] = float(line[_][35:42].strip()) if line[_][35:42].strip() else None
-            temp["DRCT"] = int(line[_][42:49].strip())
-            temp["SPED"] = float(line[_][49:56].strip())
-            temp["THTA"] = float(line[_][56:63].strip())
-            temp["THTE"] = float(line[_][63:70].strip()) if line[_][63:70].strip() else None
-            temp["THTV"] = float(line[_][70:].strip()) if line[_][70:].strip() else None
+        while _ < len(line) - 1:
+            for col in range(1, len(col_index)):
+                _key = entries[col - 1]
+                _val = line[_][col_index[col - 1]: col_index[col] + 1].strip()
+                temp[_key] = float(_val) if _val else None
             _ += 1
             lst.append(temp.copy())
         np.save(dest_, lst)
-
 
 
     @staticmethod
