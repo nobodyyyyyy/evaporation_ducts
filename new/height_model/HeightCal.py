@@ -1,4 +1,4 @@
-from decimal import Decimal
+import os
 
 import numpy as np
 from openpyxl import Workbook
@@ -18,6 +18,8 @@ class HeightCal:
     _instance = None
     _exist = False
 
+    SST_NOT_FOUND = -999
+
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -34,20 +36,28 @@ class HeightCal:
                 'sst': 2,
                 'pj': 3
             }
-            # t, RH, ts, u, P
             self.models = [nps_duct_height, babin_duct_height, evap_duct_SST, pj2height]
+            self.sst_cache = {}
 
 
-    @staticmethod
-    def get_sst(year:int, month:int, day:int, lan:float, lng:float, file_name=''):
+    def get_sst(self, year:int, month:int, day:int, lan:float, lng:float):
+        if (year, month, lan, lng) in self.sst_cache.keys():
+            return self.sst_cache[(year, month, lan, lng)]
         time_ = TimeUtil.to_time_millis(year, month, day, 0, 0, 0)
-        sst_kelvins = DataUtils.get_support_data(year, month, 'sst', lan, lng, time_, file_name=file_name)
+        month = TimeUtil.format_month_or_day(month)
+        sst_file = '../data/ERA5_daily/sst/sst.{}-{}.daily.nc'.format(year, month)
+        try:
+            sst_kelvins = DataUtils.get_support_data(year, month, 'sst', lan, lng, time_, file_name=sst_file)
+        except FileNotFoundError as e:
+            print('get_sst... no such file to read sst info. Errinfo: {}'.format(e))
+            return HeightCal.SST_NOT_FOUND
+        self.sst_cache[(year, month, lan, lng)] = kelvins2degrees(sst_kelvins)
         return kelvins2degrees(sst_kelvins)
 
 
-    def get_data(self, data_dir, year, month, day, lan, lng, sst=0):
-        if sst == 0:
-            sst = HeightCal.get_sst(year, month, day, lan, lng, file_name='../data/CN/ERA5_hourly_00_sst_2021.nc')
+    def get_data(self, data_dir, year, month, day, lan, lng, sst=-999):
+        if sst == HeightCal.SST_NOT_FOUND:
+            sst = self.get_sst(year, month, day, lan, lng)
         name = DataUtils.get_file_name(data_dir)
         if name in self.dataset_cache.keys():
             dataset = self.dataset_cache[name]
@@ -59,6 +69,8 @@ class HeightCal:
 
     def cal_height(self, data_dir, model, year, month, day, lan, lng, sst=0, nrows=1):
         dataset, sst = self.get_data(data_dir, year, month, day, lan, lng, sst)
+        if sst == HeightCal.SST_NOT_FOUND:
+            return None
         if model in self.model_entry.keys():
             func = self.models[self.model_entry[model]]
         else:
@@ -72,17 +84,37 @@ class HeightCal:
         for e in dataset:
             if _ == nrows:
                 break
-            t = e['TEMP']  # 气温
-            eh = e['RELH']  # 相对湿度
-            u = e['SPED']  # 风速
-            p = e['PRES']  # 压强
-            h = e['HGNT']  # 测量高度
-            if t is None or eh is None or u is None or p is None:
-                print('cal_height... data incomplete: [{}, {}, {}, {}, {}, {}]'.format(t, eh, sst, u, p, h))
-                res.append(None)
-                continue
-            res.append(func(t, eh, sst, u, p, h))
+            res.append(self.cal_height_with_data(e, sst, func))
             _ += 1
+        return res
+
+
+    def cal_height_with_data(self, e, sst, model):
+        """
+        有数据和海面温度的时候，就可以计算高度
+        :param model: 模型名称或函数
+        :param e: npy 格式的处理好的文件
+        :param sst: 海面温度
+        :return: 波导高度
+        """
+        if type(model) is str:
+            if model not in self.model_entry.keys():
+                print('cal_height_with_data... U')
+            model = self.models[self.model_entry[model]]
+
+        t = e['TEMP']  # 气温
+        eh = e['RELH']  # 相对湿度
+        u = e['SPED']  # 风速
+        p = e['PRES']  # 压强
+        h = e['HGNT']  # 测量高度
+        if t is None or eh is None or u is None or p is None:
+            print('cal_height_with_data... data incomplete: [{}, {}, {}, {}, {}, {}]'.format(t, eh, sst, u, p, h))
+            return None
+        try:
+            res = model(t, eh, sst, u, p, h)
+        except Exception as e:
+            print('cal_height_with_data... model error: {}'.format(e))
+            return None
         return res
 
 
@@ -92,7 +124,7 @@ class HeightCal:
         ws.title = 'result'
         header = ['气温', '相对湿度', '海温', '风速', '压强', '测量高度']
         res = []
-        sst = HeightCal.get_sst(year, month, day, lan, lng, file_name='../data/CN/ERA5_hourly_00_sst_2021.nc')
+        sst = self.get_sst(year, month, day, lan, lng)
         for model_name in self.model_entry.keys():
             header.append(model_name)
             tmp_res = self.cal_height(data_dir, model_name, year, month, day, lan, lng, sst=sst, nrows=nrows)
@@ -108,13 +140,62 @@ class HeightCal:
         input_data = self.dataset_cache[name]  # you can always find target in cache
 
         ws.append(header)
-        # 22/11/25 fix 波导高度的模型计算只用高度最低的一条数据即可
         for i in range(nrows):
             e = input_data[i]
             line = [e['TEMP'], e['RELH'], sst, e['SPED'], e['PRES'], e['HGNT']]
             for j in range(len(self.model_entry.keys())):
                 line.append(res[j][i])
             ws.append(line)
+        wb.save(filename=output_name)
+
+
+    def batch_cal_and_record_all_models(self, data_dir, lan, lng, output_name=''):
+        """
+        批处理模型高度计算，全模型。
+        其实可以和 cal_and_record_all_models 结合，但没必要引入非必要的耦合
+        """
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'result'
+        header = ['日期', '气温', '相对湿度', '海温', '风速', '压强', '测量高度'] + list(self.model_entry.keys())
+
+        files = []
+        for file_name in os.listdir(data_dir):
+            files.append(file_name)
+
+        res = []  # [[date, input..., results...], [], [], ...]
+
+        # cal each
+        for file in files:
+            date_str = file.split('_')[2]
+            _year, _month, _day = TimeUtil.format_date_to_year_month_day(date_str)
+            _file = data_dir + '/' + file  # real dir
+
+            dataset, sst = self.get_data(_file, _year, _month, _day, lan, lng)
+            ele = dataset[0]
+            cur_res = [date_str, ele['TEMP'], ele['RELH'], sst, ele['SPED'], ele['PRES'], ele['HGNT']]
+            if sst == HeightCal.SST_NOT_FOUND:
+                res.append(cur_res)
+                continue
+            for _model in self.model_entry.keys():
+                try:
+                    height = self.cal_height_with_data(ele, sst, _model)
+                    cur_res.append(height)
+                except Exception as err:
+                    print('batch_cal_and_record_all_models... error for file: {}\n Info: {}'.format(file, err))
+                    cur_res.append(None)
+            print('batch_cal_and_record_all_models... appending {}'.format(cur_res))
+            res.append(cur_res)
+
+
+        # wrt
+        if output_name == '':
+            output_name = 'output'
+        if output_name.split('.')[-1] != 'xlsx' or output_name.split('.')[-1] != 'xls':
+            output_name += '.xlsx'
+        ws.append(header)
+        for l in res:
+            ws.append(l)
         wb.save(filename=output_name)
 
 
@@ -186,7 +267,7 @@ class HeightCal:
                 except Exception as e:
                     # 有什么错我们都不会终止
                     print('sensitivity_analyze... t={}, eh={}, u={}, p={}, h={} error:{}'.format(t, eh, u, p, h, e))
-                    height = -999
+                    height = None
                 model_res.append(height)
             tmp_res.append(model_res)
 
@@ -253,7 +334,11 @@ if __name__ == '__main__':
     c = HeightCal()
     # c.sensitivity_analyze('../data/CN/haikou.npy', 'all', 2021, 11, 29, 20, 110.250, output_name='sensi')
     # print(c.disturbance_prepare(23, 71, 23.231, 4.1, 1021, 65))
-    c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=1)
+    # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=1
+    c.batch_cal_and_record_all_models('../data/test_2022_12_02/sounding_data/stn_59758_processed', 20.000, 110.250,
+                                      output_name='haikou_all.xlsx')
+    # todo 2020 10 01 sst 拿不到
+    # todo 似乎有一个更高分辨率的sst可以去尝试拿取
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
     pass

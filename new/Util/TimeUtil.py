@@ -13,7 +13,6 @@ class TimeUtil:
             if len(input_) == 1:
                 return '0' + input_
             else:
-                print('input_ {} is str'.format(input_))
                 return input_
         elif isinstance(input_, int):
             if input_ > 10:
@@ -22,6 +21,15 @@ class TimeUtil:
                 return '0' + str(input_)
         print('cannot transform for input_ {}'.format(input_))
         return input_
+
+
+    @staticmethod
+    def format_date_to_year_month_day(str_like_date):
+        """
+        '2022-01-02' -> 2022, 1, 2
+        """
+        t = time.strptime(str_like_date, "%Y-%m-%d")
+        return t.tm_year, t.tm_mon, t.tm_mday
 
 
     @staticmethod
@@ -73,5 +81,5 @@ class TimeUtil:
 
 
 if __name__ == '__main__':
-    print(TimeUtil.to_time_millis(2019,1,1,1,1,1))
+    print(TimeUtil.format_date_to_year_month_day('2012-02-09'))
     pass

@@ -142,13 +142,15 @@ def babin_duct_height(t, RH, ts, u, P, height=-1):
     else:
         # print('不稳定条件下的蒸发波导高度计算')
         H1 = -(B * tsr + C * qsr) * fait(zet) / von / (A + 0.157)
-        while Conv == 1:
+        step = 1
+        while Conv == 1 and step < 100:
             zet1 = von * grav * H1 * (tsr + 0.61 * ta * qsr) / ta / (usr**2)
             H = -(B * tsr + C * qsr) * fait(zet1) / von / (A + 0.157)
             if abs(H - H1) <= 0.0001:
                 Conv = 0
             else:
                 H1 = H
+            step += 1
 
     return H.real
 

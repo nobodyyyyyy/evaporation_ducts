@@ -40,48 +40,62 @@ class DataUtils:
 
 
     @staticmethod
-    def txt_file_to_npy(dir_, dest_):
+    def txt_file_to_npy(dir_, dest_, batch=False):
         """
         探空资料处理
-        :param dir_:
+        :param batch: 批处理
+        :param dir_: 如果 batch，该项填文件夹目录
         :param dest_: 【重要】只用写需要生成的文件夹位置即可，文件名不用设置
         :return:
         """
 
-        os.makedirs('folder', exist_ok=True)
-        with open(dir_, mode='r') as file:
-            line = file.readlines()
+        files = []
 
-        # bugfix: 12/9/2022 yrt 原本代码无法支持数据缺失和数据长度异常、过大等问题
-        # 由于数据是右对齐的，所以取 header 的最右边的列，可以拿到对应的数据右边界
-        header = line[5]
-        col_index = [0]
-        _l = -1
-        processing = False
-        for _r in range(len(header)):
-            if header[_r] == ' ' and _l == -1:
-                continue
-            elif header[_r] != ' ' and not processing:
-                _l = _r
-                processing = True
-            elif header[_r] == ' ' and processing:
-                processing = False
-                col_index.append(_r)
-                _l = _r
-        col_index.append(_r)
+        if batch:
+            for file_name in os.listdir(dir_):
+                files.append(file_name)
+        else:
+            files.append(dir_)
 
-        lst = []
-        entries = ["PRES", "HGNT", "TEMP", "DWPT", "RELH", "MIXR", "DRCT", "SPED", "THTA", "THTE", "THTV"]
-        temp = dict.fromkeys(entries)
-        _ = 8
-        while _ < len(line) - 1:
-            for col in range(1, len(col_index)):
-                _key = entries[col - 1]
-                _val = line[_][col_index[col - 1]: col_index[col] + 1].strip()
-                temp[_key] = float(_val) if _val else None
-            _ += 1
-            lst.append(temp.copy())
-        np.save(dest_, lst)
+        os.makedirs(dest_, exist_ok=True)
+
+        for f in files:
+            with open('{}/{}'.format(dir_, f), mode='r') as file:
+                line = file.readlines()
+                # generate name
+                output = dest_ + '/' + f.split('.')[-2] + '.npy'
+
+                # bugfix: 12/9/2022 yrt 原本代码无法支持数据缺失和数据长度异常、过大等问题
+            # 由于数据是右对齐的，所以取 header 的最右边的列，可以拿到对应的数据右边界
+            header = line[5]
+            col_index = [0]
+            _l = -1
+            processing = False
+            for _r in range(len(header)):
+                if header[_r] == ' ' and _l == -1:
+                    continue
+                elif header[_r] != ' ' and not processing:
+                    _l = _r
+                    processing = True
+                elif header[_r] == ' ' and processing:
+                    processing = False
+                    col_index.append(_r)
+                    _l = _r
+            col_index.append(_r)
+
+            lst = []
+            entries = ["PRES", "HGNT", "TEMP", "DWPT", "RELH", "MIXR", "DRCT", "SPED", "THTA", "THTE", "THTV"]
+            temp = dict.fromkeys(entries)
+            _ = 8
+            while _ < len(line) - 1:
+                for col in range(1, len(col_index)):
+                    _key = entries[col - 1]
+                    _val = line[_][col_index[col - 1]: col_index[col] + 1].strip()
+                    temp[_key] = float(_val) if _val else None
+                _ += 1
+                lst.append(temp.copy())
+
+            np.save(output, lst)
 
 
     @staticmethod
@@ -178,7 +192,8 @@ class DataUtils:
         month = TimeUtil.format_month_or_day(month)
 
         if file_name.strip() == '':
-            file = './AEM/{}.{}-{}.daily.nc'.format(type_, year, month)
+            # 12/9/2022 ERA5 文件迁移及格式修改
+            file = './ERA5_daily/{}/{}.{}-{}.daily.nc'.format(type_, type_, year, month)
         else:
             file = file_name
         inst = DataUtils()
@@ -239,4 +254,9 @@ if __name__ == '__main__':
 
     # DataUtils.txt_file_to_npy('./CN/test1.txt', './CN/shantou.npy')
     # DataUtils.txt_file_to_npy('./CN/test2.txt', './CN/haikou.npy')
+
+    DataUtils.txt_file_to_npy('../data/test_2022_12_02/sounding_data/stn_59758',
+                              '../data/test_2022_12_02/sounding_data/stn_59758_processed',
+                              batch=True)
+
     pass
