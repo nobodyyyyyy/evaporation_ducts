@@ -133,7 +133,7 @@ class HeightCal:
         # wrt
         if output_name == '':
             output_name = 'output'
-        if output_name.split('.')[-1] != 'xlsx' or output_name.split('.')[-1] != 'xls':
+        if output_name.split('.')[-1] != 'xlsx' and output_name.split('.')[-1] != 'xls':
             output_name += '.xlsx'
 
         name = DataUtils.get_file_name(data_dir)
@@ -191,7 +191,7 @@ class HeightCal:
         # wrt
         if output_name == '':
             output_name = 'output'
-        if output_name.split('.')[-1] != 'xlsx' or output_name.split('.')[-1] != 'xls':
+        if output_name.split('.')[-1] != 'xlsx' and output_name.split('.')[-1] != 'xls':
             output_name += '.xlsx'
         ws.append(header)
         for l in res:
@@ -336,8 +336,7 @@ if __name__ == '__main__':
     # print(c.disturbance_prepare(23, 71, 23.231, 4.1, 1021, 65))
     # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=1
     c.batch_cal_and_record_all_models('../data/test_2022_12_02/sounding_data/stn_59758_processed', 20.000, 110.250,
-                                      output_name='haikou_all.xlsx')
-    # todo 2020 10 01 sst 拿不到
+                                      output_name='haikou_all_fixed.xlsx')
     # todo 似乎有一个更高分辨率的sst可以去尝试拿取
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))

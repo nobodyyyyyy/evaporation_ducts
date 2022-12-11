@@ -10,12 +10,9 @@ class TimeUtil:
         :return:
         """
         if isinstance(input_, str):
-            if len(input_) == 1:
-                return '0' + input_
-            else:
-                return input_
-        elif isinstance(input_, int):
-            if input_ > 10:
+            input_ = int(input_)
+        if isinstance(input_, int):
+            if input_ >= 10:
                 return str(input_)
             elif input_ > 0:
                 return '0' + str(input_)
