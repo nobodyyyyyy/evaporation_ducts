@@ -89,19 +89,20 @@ class HeightCal:
         return res
 
 
-    def cal_height_with_data(self, e, sst, model):
+    def cal_height_with_data(self, e, sst, model, stable_check=False):
         """
         有数据和海面温度的时候，就可以计算高度
         :param model: 模型名称或函数
         :param e: npy 格式的处理好的文件
         :param sst: 海面温度
+        :param stable_check: 检查是否稳定
         :return: 波导高度
         """
         if type(model) is str:
             if model not in self.model_entry.keys():
                 print('cal_height_with_data... U')
             model = self.models[self.model_entry[model]]
-
+        is_stable = False
         t = e['TEMP']  # 气温
         eh = e['RELH']  # 相对湿度
         u = e['SPED']  # 风速
@@ -111,10 +112,15 @@ class HeightCal:
             print('cal_height_with_data... data incomplete: [{}, {}, {}, {}, {}, {}]'.format(t, eh, sst, u, p, h))
             return None
         try:
-            res = model(t, eh, sst, u, p, h)
+            if stable_check:
+                res, is_stable = model(t, eh, sst, u, p, h, stable_check)
+            else:
+                res = model(t, eh, sst, u, p, h)
         except Exception as e:
             print('cal_height_with_data... model error: {}'.format(e))
             return None
+        if stable_check:
+            return res, is_stable
         return res
 
 
@@ -149,7 +155,7 @@ class HeightCal:
         wb.save(filename=output_name)
 
 
-    def batch_cal_and_record_all_models(self, data_dir, lan, lng, output_name=''):
+    def batch_cal_and_record_all_models(self, data_dir, lan, lng, output_name='', stable_check=False):
         """
         批处理模型高度计算，全模型。
         其实可以和 cal_and_record_all_models 结合，但没必要引入非必要的耦合
@@ -157,7 +163,12 @@ class HeightCal:
         wb = Workbook()
         ws = wb.active
         ws.title = 'result'
-        header = ['日期', '气温', '相对湿度', '海温', '风速', '压强', '测量高度'] + list(self.model_entry.keys())
+        header = ['日期', '气温', '相对湿度', '海温', '风速', '压强', '测量高度']
+        if not stable_check:
+            header += list(self.model_entry.keys())
+        else:
+            for model_name in list(self.model_entry.keys()):
+                header += [model_name, '稳定性']
 
         files = []
         for file_name in os.listdir(data_dir):
@@ -179,8 +190,13 @@ class HeightCal:
                 continue
             for _model in self.model_entry.keys():
                 try:
-                    height = self.cal_height_with_data(ele, sst, _model)
-                    cur_res.append(height)
+                    if stable_check:
+                        height, is_stable = self.cal_height_with_data(ele, sst, _model, stable_check)
+                        cur_res.append(height)
+                        cur_res.append(is_stable)
+                    else:
+                        height = self.cal_height_with_data(ele, sst, _model)
+                        cur_res.append(height)
                 except Exception as err:
                     print('batch_cal_and_record_all_models... error for file: {}\n Info: {}'.format(file, err))
                     cur_res.append(None)
@@ -336,7 +352,7 @@ if __name__ == '__main__':
     # print(c.disturbance_prepare(23, 71, 23.231, 4.1, 1021, 65))
     # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=1
     c.batch_cal_and_record_all_models('../data/test_2022_12_02/sounding_data/stn_59758_processed', 20.000, 110.250,
-                                      output_name='haikou_all_fixed.xlsx')
+                                      output_name='haikou_all_stable.xlsx', stable_check=True)
     # todo 似乎有一个更高分辨率的sst可以去尝试拿取
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))

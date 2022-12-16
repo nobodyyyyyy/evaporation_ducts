@@ -6,7 +6,7 @@ import numpy as np
 from new.Util.DuctHeightUtil import R_S, qsee, psiu_nps, psit_nps
 
 
-def nps_duct_height(t, RH, ts, u, P, height=-1):
+def nps_duct_height(t, RH, ts, u, P, height=-1, stable_check=False):
     # zu = 12.5  # 风速测量高度
     # zt = 12.5  # 温度测量高度
     # zq = 12.5  # 湿度测量高度
@@ -105,6 +105,10 @@ def nps_duct_height(t, RH, ts, u, P, height=-1):
             ug = 0.2
         ut = sqrt(du * du + ug * ug)
 
+    if zet.real >= 0:
+        _stable = True
+    else:
+        _stable = False
 
     # 计算波导高度
     ee = 0.62197  # the ratic of the gas constant for dry air to that of water vapor
@@ -147,7 +151,11 @@ def nps_duct_height(t, RH, ts, u, P, height=-1):
             idx = _
     if idx == -1:
         print('nps... error: cannot cal height')
+        if stable_check:
+            return -1, _stable
         return -1
+    if stable_check:
+        return h[idx], _stable
     return h[idx]
 
 

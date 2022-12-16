@@ -1,6 +1,6 @@
 import math
 
-def pj2height(t, rh, to, u, p, z):
+def pj2height(t, rh, to, u, p, z, stable_check=False):
     '''
     PS. 原版matlab代码里面貌似返回值还有一个M变量, 但不知什么意思，因为我们这里只需要高度, M变量的计算就不考虑了
     t: 空气温度
@@ -15,6 +15,7 @@ def pj2height(t, rh, to, u, p, z):
     beta = 5.2
     Tz = t + 273.16
     To = to + 273.16
+    _stable = False
 
     if Tz - To <= -1:
         Rib = 98*z*(Tz-To)/(u**2*Tz) # 理查森数
@@ -101,11 +102,13 @@ def pj2height(t, rh, to, u, p, z):
         DNp1 = Np1 - Npo1
 
         if Rib1 >= 0:
+            _stable = True
             B1 = math.log(z / zo) + beta / L1 * (z - zo);
             H1 = DNp1 / (b * B1 - DNp1 * beta / L1) # 波导高度
             
         # 不稳定情况下
         else:
+            _stable = False
             c1 = z / L1
 
             if c1 >= 0.01:
@@ -241,4 +244,8 @@ def pj2height(t, rh, to, u, p, z):
     elif H < 0:
         H = 0
 
-    return H
+    if stable_check:
+        return H, _stable
+    else:
+        return H
+
