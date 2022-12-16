@@ -1,6 +1,7 @@
 import time
 import datetime
 
+
 class TimeUtil:
 
     @staticmethod
@@ -19,7 +20,6 @@ class TimeUtil:
         print('cannot transform for input_ {}'.format(input_))
         return input_
 
-
     @staticmethod
     def format_date_to_year_month_day(str_like_date):
         """
@@ -28,17 +28,14 @@ class TimeUtil:
         t = time.strptime(str_like_date, "%Y-%m-%d")
         return t.tm_year, t.tm_mon, t.tm_mday
 
-
     @staticmethod
     def current_time_millis():
         return round(time.time() * 1000)
-
 
     @staticmethod
     def to_time_millis(year_, month_, day_, hr_, min_, sec_):
         dt = datetime.datetime(year_, month_, day_, hr_, min_, sec_)
         return int(time.mktime(dt.timetuple()))
-
 
     @staticmethod
     def time_millis_2_nc_timestamp(time_millis):
@@ -53,7 +50,6 @@ class TimeUtil:
         sec_diff = day_diff * 24 * 3600
         return int((time_millis + sec_diff) / 3600)
 
-
     @staticmethod
     def nc_timestamp_2_time_millis(nc_timestamp):
         """
@@ -63,6 +59,21 @@ class TimeUtil:
         sec_diff = day_diff * 24 * 3600
         return nc_timestamp * 3600 - sec_diff
 
+    @staticmethod
+    def noaa_timestamp_2_time_millis(number_of_delta_t):
+        """
+        noaa 的 timestamp 表示的是与 1800.1.1 相差的天数
+        """
+        begin = datetime.datetime(1800, 1, 1, 0, 0, 0)
+        ret = begin + datetime.timedelta(days=number_of_delta_t)
+        return int(time.mktime(ret.timetuple()))
+
+    @staticmethod
+    def time_millis_2_noaa_timestamp(time_millis):
+        begin = datetime.datetime(1800, 1, 1, 0, 0, 0)
+        cur = datetime.datetime.fromtimestamp(time_millis)
+        ret = cur - begin
+        return ret.days
 
     @staticmethod
     def get_day_sum(year, month):
@@ -78,5 +89,4 @@ class TimeUtil:
 
 
 if __name__ == '__main__':
-    print(TimeUtil.format_date_to_year_month_day('2012-02-09'))
-    pass
+    print(TimeUtil.time_millis_2_noaa_timestamp(1609344000))

@@ -12,6 +12,7 @@ import warnings
 import numpy as np
 import netCDF4 as nc
 from numpy import ndarray
+from openpyxl import Workbook
 
 from new.Util.TimeUtil import TimeUtil
 
@@ -20,6 +21,9 @@ class DataUtils:
 
     _instance = None
     _exist = False
+
+    FILE_TYPE_NOAA = 1
+    FILE_TYPE_EAR5 = 2
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -37,6 +41,22 @@ class DataUtils:
     @staticmethod
     def get_file_name(dir_):
         return dir_.split('/')[-1]
+
+
+    @staticmethod
+    def excel_writer_prepare(header, output_name='', title_name='result'):
+        # wrt
+        wb = Workbook()
+        ws = wb.active
+        ws.title = title_name
+
+        if output_name == '':
+            output_name = 'output'
+        if output_name.split('.')[-1] != 'xlsx' or output_name.split('.')[-1] != 'xls':
+            output_name += '.xlsx'
+        if header is not None:
+            ws.append(header)
+        return wb, ws
 
 
     @staticmethod
@@ -176,7 +196,8 @@ class DataUtils:
 
 
     @staticmethod
-    def get_support_data(year:int, month:int, type_:str, lan:float, lng:float, time_, level=-1, file_name=''):
+    def get_support_data(year:int, month:int, type_:str, lan:float, lng:float, time_, level=-1,
+                         file_name='', file_type=FILE_TYPE_EAR5):
         """
         获取辅助数据，主要是 nc 文件内容
         :param month:
@@ -187,11 +208,27 @@ class DataUtils:
         :param time_: 标准的【豪秒】级别时间戳
         :param level: air pressure level 只能取特定的取值，见文档
         :param file_name: 如果需要直接指定文件名，传入该项
+        :param file_type: era5 和 noaa 文件的 key 可能不同
         :return: 所需 data
         """
         month = TimeUtil.format_month_or_day(month)
 
+        if file_type == DataUtils.FILE_TYPE_EAR5:
+            lat_desp = 'latitude'
+            lon_desp = 'longitude'
+            lat_idx_reverse = True
+            nc_timestamp = TimeUtil.time_millis_2_nc_timestamp(time_)
+        elif file_type == DataUtils.FILE_TYPE_NOAA:
+            lat_desp = 'lat'
+            lon_desp = 'lon'
+            lat_idx_reverse = False
+            nc_timestamp = TimeUtil.time_millis_2_noaa_timestamp(time_)
+        else:
+            print('get_support_data... file type [{}] not supported.'.format(file_type))
+            return -1
+
         if file_name.strip() == '':
+            # 没指定的一律读 era5 daily
             # 12/9/2022 ERA5 文件迁移及格式修改
             file = './ERA5_daily/{}/{}.{}-{}.daily.nc'.format(type_, type_, year, month)
         else:
@@ -206,12 +243,11 @@ class DataUtils:
             print('get_support_data... Could not load dataset for file: {}'.format(file))
             return
 
-        nc_timestamp = TimeUtil.time_millis_2_nc_timestamp(time_)
-        lats = np.array(dataset.variables['latitude'][:])
-        lngs = np.array(dataset.variables['longitude'][:])
+        lats = np.array(dataset.variables[lat_desp][:])
+        lngs = np.array(dataset.variables[lon_desp][:])
         times = np.array(dataset.variables['time'][:])
         # find corresponding idx for lan, lng, time
-        lat_idx = DataUtils.get_idx_for_val_pos(lats, lan, is_reverse=True)
+        lat_idx = DataUtils.get_idx_for_val_pos(lats, lan, is_reverse=lat_idx_reverse)
         lng_idx = DataUtils.get_idx_for_val_pos(lngs, lng)
         try:
             time_idx = DataUtils.get_idx_for_val_pos(times, nc_timestamp)
