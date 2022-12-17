@@ -152,11 +152,18 @@ def nps_duct_height(t, RH, ts, u, P, height=-1, stable_check=False):
     if idx == -1:
         print('nps... error: cannot cal height')
         if stable_check:
-            return -1, _stable
-        return -1
+            return 0, _stable
+        return 0
+
+    res = h[idx]
+    if res > 40:
+        res = 40
+    if res < 0:
+        res = 0
+
     if stable_check:
-        return h[idx], _stable
-    return h[idx]
+        return res, _stable
+    return res
 
 
 if __name__ == '__main__':

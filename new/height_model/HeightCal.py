@@ -1,4 +1,5 @@
 import os
+import random
 
 import numpy as np
 from openpyxl import Workbook
@@ -16,6 +17,10 @@ from new.height_model.models.sst import evap_duct_SST
 class HeightCal:
     _instance = None
     _exist = False
+
+    # 扰动数据相关
+    DISTUR_COE = 1  # 由 [-1, 1] 的系数控制扰动
+    DISTUR_WALK = 2  # 在范围内的网格数据，按步长生成
 
     SST_NOT_FOUND = -999
 
@@ -252,58 +257,102 @@ class HeightCal:
             return
         return self.single_sensitivity_analyze(t, eh, u, p, h, sst, model, output_name)
 
-    def single_sensitivity_analyze(self, t, eh, u, p, h, sst, model, output_name=''):
+    def single_sensitivity_analyze(self, t, eh, u, p, h, sst, model, output_name='',
+                                   disturbance_type=DISTUR_COE,
+                                   request_detailed_result=False,
+                                   request_statistic_result=True,
+                                   epoch=1000):
         """
         单数据敏感性分析
         """
-        res = {}
         func_arr = []
         header = ['气温', '相对湿度', '海温', '风速', '压强', '测量高度']
-
+        res = []
+        model_names = []
         if model.lower() != 'all':
+            # 单模型
             if model in self.model_entry.keys():
                 func_arr.append(self.models[self.model_entry[model]])
-                header.append(model)
+                model_names.append(model)
+                header += model_names
+                res.append([])
             else:
                 print('cal_height... Unexpected model: {}'.format(model))
                 return
         else:
             func_arr = self.models
             for model_name in self.model_entry.keys():
-                header.append(model_name)
+                model_names.append(model_name)
+                header += model_names
+                res.append([])
 
-        new_data = self.disturbance_prepare(t, eh, sst, u, p, h)
+        if disturbance_type == HeightCal.DISTUR_WALK:
+            new_data = self.disturbance_prepare(t, eh, sst, u, p, h)
+        elif disturbance_type == HeightCal.DISTUR_COE:
+            new_data = self.random_disturbance_prepare(t, eh, sst, u, p, h, times=epoch)
+        else:
+            print('single_sensitivity_analyze... disturbance_type unsupported.')
+            return
 
         tmp_res = []
         for r in new_data:
             model_res = []
+            model_cnt = 0
             for _model in func_arr:
                 try:
                     # r 的顺序和 disturbance_prepare 传参顺序保持一致
                     height = _model(r[0], r[1], r[2], r[3], r[4], r[5])
                 except Exception as e:
                     # 有什么错我们都不会终止
-                    print('sensitivity_analyze... t={}, eh={}, u={}, p={}, h={} error:{}'.format(t, eh, u, p, h, e))
-                    height = None
+                    print('sensitivity_analyze... [Error model {}] t={}, eh={}, sst={}, u={}, p={}, h={} error:{}'
+                          .format(_model, r[0], r[1], r[2], r[3], r[4], r[5], e))
+                    height = 0
                 model_res.append(height)
+                res[model_cnt].append(height)
+                model_cnt += 1
             tmp_res.append(model_res)
 
-        wb, ws = DataUtils.excel_writer_prepare(header=header, output_name=output_name)
+        if request_detailed_result:
+            wb, ws = DataUtils.excel_writer_prepare(header=header, output_name=output_name)
 
-        assert len(new_data) == len(tmp_res)
-        for _ in range(len(new_data)):
-            ws.append(new_data[_] + tmp_res[_])
+            assert len(new_data) == len(tmp_res)
+            for _ in range(len(new_data)):
+                ws.append(new_data[_] + tmp_res[_])
 
-        wb.save(filename=output_name)
-        return res
+            wb.save(filename=output_name)
+
+        if request_statistic_result:
+            print('--------single_sensitivity_analyze--------')
+
+            for _ in range(len(model_names)):
+                cur_res = res[_]
+                _mean = np.mean(cur_res)
+                _var = np.var(cur_res)
+                print('model: {} Mean: {} Var: {}'.format(model_names[_], round(_mean, 3), round(_var, 3)))
+        return True
+
 
     @staticmethod
-    def random_disturbance_prepare(t, eh, sst, u, p, h, u_gap=3, t_gap=5, eh_gap=25):
+    def random_disturbance_prepare(t, eh, sst, u, p, h, u_gap=2, t_gap=2, eh_gap=3, times=10):
         """
         随机扰动数据生成
         给定随机系数 [-1,1]，乘以对应的 gap 值，得到数据
         """
         ret = []
+        for _ in range(times):
+            u_coe = random.uniform(-1, 1)
+            t_coe = random.uniform(-1, 1)
+            eh_coe = random.uniform(-1, 1)
+            u_val = u + u_coe * u_gap
+            t_val = t + t_coe * t_gap
+            eh_val = eh + eh_coe * eh_gap
+            res = MathUtil.round(u_val, t_val, eh_val, decimal=3)
+            u_val, t_val, eh_val = res[0], res[1], res[2]
+            if u_val < 0 or eh_val < 0 or eh_val > 100:
+                _ -= 1
+                continue
+            ret.append([t_val, eh_val, sst, u_val, p, h])
+        return ret
 
     @staticmethod
     def disturbance_prepare(t, eh, sst, u, p, h, lowers=None, uppers=None, gaps=None, round_first=False):
@@ -345,10 +394,11 @@ class HeightCal:
 if __name__ == '__main__':
     c = HeightCal()
     # c.batch_sensitivity_analyze('../data/CN/haikou.npy', 'all', 2021, 11, 29, 20, 110.250, output_name='sensi')
-    # print(c.disturbance_prepare(23, 71, 23.231, 4.1, 1021, 65))
+    # print(c.single_sensitivity_analyze(21.7,	66,		4.1,	1010.5,	65,25.55999947, 'all'))
     # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=1
-    c.batch_cal_and_record_all_models('../data/test_2022_12_02/sounding_data/stn_59758_processed', 20.000, 110.250,
-                                      output_name='haikou_all_stable_noaa.xlsx', stable_check=True)
+    # c.batch_cal_and_record_all_models('../data/test_2022_12_02/sounding_data/stn_59758_processed', 20.000, 110.250,
+    #                                   output_name='haikou_all_stable_noaa2.xlsx', stable_check=True)
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
+    c.cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed/stn_59758_2020-01-24_00UTC.npy')
     pass

@@ -76,7 +76,7 @@ def psit_25(zet):
     psic = 1.5 * log((1 + x + x * x) / 3) - sqrt(3) * atan((1 + 2 * x) / sqrt(3)) + 4 * atan(1) / sqrt(3)
     f = zet * zet / (1 + zet * zet)
     psi = (1 - f) * psik + f * psic
-    if zet > 0:
+    if zet.real > 0:
         psi = -5 * zet
     return psi
 

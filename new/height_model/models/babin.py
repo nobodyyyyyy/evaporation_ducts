@@ -155,7 +155,10 @@ def babin_duct_height(t, RH, ts, u, P, height=-1, stable_check=False):
             else:
                 H1 = H
             step += 1
-
+    if H.real > 40:
+        H = 40
+    elif H.real < 0:
+        H = 0
     if stable_check:
         return H.real, _stable
     else:
