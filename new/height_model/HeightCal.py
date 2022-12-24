@@ -5,6 +5,7 @@ import numpy as np
 from openpyxl import Workbook
 
 from new.Util.DuctHeightUtil import kelvins2degrees, atmospheric_refractive_index_M, get_duct_height
+from new.Util.EvalUtil import EvalUtil
 from new.Util.MathUtil import MathUtil
 from new.data.DataUtil import DataUtils
 from new.Util.TimeUtil import TimeUtil
@@ -213,7 +214,7 @@ class HeightCal:
             ws.append(l)
         wb.save(filename=output_name)
 
-    def cal_real_height(self, data_dir):
+    def cal_real_height(self, data_dir, debug=False):
         """
         计算不同高度的折射率，画出廓线，找到拐点，得到真实的大气波导高度
         """
@@ -232,11 +233,21 @@ class HeightCal:
             p = e['PRES']  # 压强
             h = e['HGNT']  # 测量高度
             if t is None or eh is None or h is None or p is None:
-                print('cal_real_height... data incomplete: [{}, {}, {}, {}]'.format(t, eh, p, h))
+                if debug:
+                    print('cal_real_height... data incomplete: [{}, {}, {}, {}]'.format(t, eh, p, h))
                 continue
             _Ms.append(atmospheric_refractive_index_M(t, p, eh, h))
             _Zs.append(h)
         return get_duct_height(_Ms, _Zs, caller='cal_real_height')
+
+    def batch_cal_real_height(self, data_dir):
+        # debug only
+        wb, ws = DataUtils.excel_writer_prepare(header=['时间'], output_name='real')
+        for file_name in os.listdir(data_dir):
+            # print('{}, res = {}'.format(file_name, self.cal_real_height(data_dir + '/' + file_name, debug=False)))
+            h, _ = self.cal_real_height(data_dir + '/' + file_name, debug=False)
+            ws.append([file_name, h])
+        wb.save('real.xlsx')
 
     def batch_sensitivity_analyze(self, data_dir, model, year, month, day, lan, lng, sst=0, output_name=''):
         """
@@ -261,6 +272,7 @@ class HeightCal:
                                    disturbance_type=DISTUR_COE,
                                    request_detailed_result=False,
                                    request_statistic_result=True,
+                                   request_eval_result=True,
                                    epoch=1000):
         """
         单数据敏感性分析
@@ -329,8 +341,15 @@ class HeightCal:
                 _mean = np.mean(cur_res)
                 _var = np.var(cur_res)
                 print('model: {} Mean: {} Var: {}'.format(model_names[_], round(_mean, 3), round(_var, 3)))
-        return True
 
+        if request_eval_result:
+            for _ in range(len(model_names)):
+                pred = res[_]
+                real = func_arr[_](t, eh, sst, u, p, h)
+                y = [real] * epoch
+                EvalUtil.eval(y, pred, model=model_names[_])
+
+        return True
 
     @staticmethod
     def random_disturbance_prepare(t, eh, sst, u, p, h, u_gap=2, t_gap=2, eh_gap=3, times=10):
@@ -394,11 +413,13 @@ class HeightCal:
 if __name__ == '__main__':
     c = HeightCal()
     # c.batch_sensitivity_analyze('../data/CN/haikou.npy', 'all', 2021, 11, 29, 20, 110.250, output_name='sensi')
-    # print(c.single_sensitivity_analyze(21.7,	66,		4.1,	1010.5,	65,25.55999947, 'all'))
+    # print(c.single_sensitivity_analyze(24.1,	90,		4.1,	1008.4,	65, 23.58, 'all'))
+    print(c.single_sensitivity_analyze(25.7, 85, 3,  1000.1, 65, 29.19, 'all'))
     # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=1
     # c.batch_cal_and_record_all_models('../data/test_2022_12_02/sounding_data/stn_59758_processed', 20.000, 110.250,
-    #                                   output_name='haikou_all_stable_noaa2.xlsx', stable_check=True)
+    #                                   output_name='haikou_all_stable_noaa3.xlsx', stable_check=True)
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
-    c.cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed/stn_59758_2020-01-24_00UTC.npy')
+    # c.cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed/stn_59758_2021-12-20_00UTC.npy')
+    # c.batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
     pass

@@ -2,6 +2,8 @@ from cmath import exp, log, atan, sqrt
 
 import numpy as np
 
+from new.Util.MathUtil import MathUtil
+
 
 def R_S(t: np.array, p: np.array):
     try:
@@ -20,16 +22,16 @@ def qsee(ts, P):
 def psiu_nps(zet):
     # fixme 我就把 zet 看成一个值了，有问题再说
 
-    x = (1 - 15 * zet)**.25
+    x = (1 - 15 * zet) ** .25
     psik = 2 * log((1 + x) / 2) + log((1 + x * x) / 2) - 2 * atan(x) + 2 * atan(1)
-    x = (1 - 10 * zet)**.3333
+    x = (1 - 10 * zet) ** .3333
     psic = 1.5 * log((1 + x + x * x) / 3) - sqrt(3) * atan((1 + 2 * x) / sqrt(3)) + 4 * atan(1) / sqrt(3)
     f = zet * zet / (1 + zet * zet)
     psi = (1 - f) * psik + f * psic
 
     if zet.real > 0:
         c = min(50., (.35 * zet).real)
-        psi = -((1+2/3*zet) * 1.5+2/3*(zet-14.28) / exp(c)+8.525)
+        psi = -((1 + 2 / 3 * zet) * 1.5 + 2 / 3 * (zet - 14.28) / exp(c) + 8.525)
         return psi
 
     return psi
@@ -38,26 +40,25 @@ def psiu_nps(zet):
 def psit_nps(zet):
     # fixme 同上
 
-    x = (1 - 15 * zet)**.5
+    x = (1 - 15 * zet) ** .5
     psik = 2 * log((1 + x) / 2)
-    x = (1 - 34 * zet)**.3333
+    x = (1 - 34 * zet) ** .3333
     psic = 1.5 * log((1 + x + x * x) / 3) - sqrt(3) * atan((1 + 2 * x) / sqrt(3)) + 4 * atan(1) / sqrt(3)
     f = zet * zet / (1 + zet * zet)
     psi = (1 - f) * psik + f * psic
 
     if zet.real > 0:
         c = min(50., (.35 * zet).real)
-        psi = -((1+2/3*zet) * 1.5+2/3*(zet-14.28) / exp(c)+8.525)
+        psi = -((1 + 2 / 3 * zet) * 1.5 + 2 / 3 * (zet - 14.28) / exp(c) + 8.525)
         return psi
 
     return psi
 
 
 def psiu_25(zet):
-
-    x = (1 - 16 * zet)**.25
-    psik = 2 * log((1 + x) / 2)+ log((1 + x * x) / 2) - 2 * atan(x) + 2 * atan(1)
-    x= (1 - 12.87 * zet)**.3333
+    x = (1 - 16 * zet) ** .25
+    psik = 2 * log((1 + x) / 2) + log((1 + x * x) / 2) - 2 * atan(x) + 2 * atan(1)
+    x = (1 - 12.87 * zet) ** .3333
     psic = 1.5 * log((1 + x + x * x) / 3) - sqrt(3) * atan((1 + 2 * x) / sqrt(3)) + 4 * atan(1) / sqrt(3)
     f = zet * zet / (1 + zet * zet)
     psi = (1 - f) * psik + f * psic
@@ -70,9 +71,9 @@ def psiu_25(zet):
 
 
 def psit_25(zet):
-    x = (1 - 16 * zet)**.5
+    x = (1 - 16 * zet) ** .5
     psik = 2 * log((1 + x) / 2)
-    x = (1 - 12.87 * zet)**.3333
+    x = (1 - 12.87 * zet) ** .3333
     psic = 1.5 * log((1 + x + x * x) / 3) - sqrt(3) * atan((1 + 2 * x) / sqrt(3)) + 4 * atan(1) / sqrt(3)
     f = zet * zet / (1 + zet * zet)
     psi = (1 - f) * psik + f * psic
@@ -82,19 +83,19 @@ def psit_25(zet):
 
 
 def fait(zet):
-    x = (1 - 16 * zet)**0.5
-    y = (1 - 12.87 * zet)**0.3333
+    x = (1 - 16 * zet) ** 0.5
+    y = (1 - 12.87 * zet) ** 0.3333
     f = zet * zet / (1 + zet * zet)
     psi = (1 - f) / x + f / y
     return psi
 
 
 def kelvins2degrees(kelvins):
-    return kelvins - 273.15
+    return MathUtil.sub(kelvins, 273.15)
 
 
 def degrees2kelvins(degrees):
-    return degrees + 273.15
+    return MathUtil.add(degrees, 273.15)
 
 
 def atmospheric_refractive_index_M(t, p, rh, z):
@@ -112,7 +113,7 @@ def atmospheric_refractive_index_M(t, p, rh, z):
     return m.real
 
 
-def get_duct_height(m_list, z_list, caller=''):
+def get_duct_height(m_list, z_list, caller='', debug=False):
     """
     获取波导高度前要不要先判断波导类型？
     由论文可见表面波导和蒸发波导的廓线差不多，故当作一起处理
@@ -144,5 +145,6 @@ def get_duct_height(m_list, z_list, caller=''):
             m1 = m_list[_ - 1]
             # z1_pos = _ - 1
         pre = sub
-    print('{}... cannot get duct height'.format(caller))
+    if debug:
+        print('{}... cannot get duct height'.format(caller))
     return -1, -1
