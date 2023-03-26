@@ -24,12 +24,13 @@ def qsee(ts, P):
 # p：压强
 
 
-def evap_duct_SST(t, RH, ts, u, P, height):
+def evap_duct_SST(t, RH, ts, u, P, height=-1, stable_check=False):
     # 有海温情况下的蒸发波导计算
     zu = 12
     zt = 12
     zq = 12
     zz = 12
+    # todo: height fix 一直没做啊
     # if height != -1:
     #     # 风速测量高度
     #     zu = height
@@ -40,6 +41,9 @@ def evap_duct_SST(t, RH, ts, u, P, height):
     #
     #     zz = height
     # 阵风系数
+
+    _stable = False
+
     Beta = 1.25
     # Karman常数
     von = 0.4
@@ -160,6 +164,7 @@ def evap_duct_SST(t, RH, ts, u, P, height):
     if zs < 0:
         # for stable conditions
         if Rib > 0:
+            _stable = True
             # select region
             if zz / z0m <= 160 and zz / z0m >= 10 and z0m / z0h >= 0.607 and z0m / z0h <= 100:
                 # print(region 1")
@@ -486,6 +491,7 @@ def evap_duct_SST(t, RH, ts, u, P, height):
                     ZL = Rib * sum(bet2 * coefficients2[3, :])
         # for unstable conditions
         elif Rib < 0:
+            _stable = False
             coefficients3 = np.array([[-116.93, 0, 0, 0, 126.9, 0, 0, 0, 0, -115.09, 111.64, -3.572, 3.8304, -4.5297,
                                        25.776, 0.45351, -26.473, 6.6361, -3.3234, 0, 0, -0.65868, 1.0393],
                                       # 这个系数跟书上的怎么不一样？
@@ -596,7 +602,11 @@ def evap_duct_SST(t, RH, ts, u, P, height):
         HH = 40
     elif HH < 0 or np.isnan(HH):
         HH = 0
-    return HH
+
+    if stable_check:
+        return HH, _stable
+    else:
+        return HH
 
 
 if __name__ == "__main__":

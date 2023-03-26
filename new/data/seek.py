@@ -1,25 +1,29 @@
 import netCDF4 as nc
 import numpy as np
 
+from new.Util.TimeUtil import TimeUtil
+
 if __name__ == '__main__':
 
-    file = 'atmPrf_C2E1.2019.274.01.10.G09_0001.0001_nc'
+    file = 'F:\\dog\\evaporation_ducts\\new\data\\test_2022_12_02\\NOAA_daily_SST\\sst.day.mean.2020.nc'
     dataset = nc.Dataset(file)
     all_vars = dataset.variables.keys()
 
     all_vars_info = dataset.variables.items()
     all_vars_info = list(all_vars_info)
 
+    pass
+
      # ref Impact_height Bend_ang
 
-    ref = np.array(dataset.variables['Ref'][:])
-    Impact_height = np.array(dataset.variables['Impact_height'][:])
-    Bend_ang = np.array(dataset.variables['Bend_ang'][:])
-
-    wrt = open('result.txt', mode='w')
-
-    for _ in range(len(ref)):
-        wrt.write('{}\t{}\t{}\n'.format(ref[_], Impact_height[_], Bend_ang[_]))
+    # ref = np.array(dataset.variables['Ref'][:])
+    # Impact_height = np.array(dataset.variables['Impact_height'][:])
+    # Bend_ang = np.array(dataset.variables['Bend_ang'][:])
+    #
+    # wrt = open('result.txt', mode='w')
+    #
+    # for _ in range(len(ref)):
+    #     wrt.write('{}\t{}\t{}\n'.format(ref[_], Impact_height[_], Bend_ang[_]))
 
     # lat = dataset.variables['latitude'][:]
     # print(lat.shape)

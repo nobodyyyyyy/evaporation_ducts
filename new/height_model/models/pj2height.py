@@ -1,6 +1,9 @@
 import math
 
-def pj2height(t, rh, to, u, p, z):
+from new.Util.MathUtil import MathUtil
+
+
+def pj2height(t, rh, to, u, p, z, stable_check=False):
     '''
     PS. 原版matlab代码里面貌似返回值还有一个M变量, 但不知什么意思，因为我们这里只需要高度, M变量的计算就不考虑了
     t: 空气温度
@@ -13,10 +16,11 @@ def pj2height(t, rh, to, u, p, z):
     b = -0.125 # 折射率梯度
     zo = 0.00015 # 海面粗糙长度
     beta = 5.2
-    Tz = t + 273.16
-    To = to + 273.16
+    Tz = MathUtil.add(t, 273.16)
+    To = MathUtil.add(to, 273.16)
+    _stable = False
 
-    if Tz - To <= -1:
+    if MathUtil.sub(Tz, To) <= -1:
         Rib = 98*z*(Tz-To)/(u**2*Tz) # 理查森数
 
         # 修正
@@ -101,11 +105,13 @@ def pj2height(t, rh, to, u, p, z):
         DNp1 = Np1 - Npo1
 
         if Rib1 >= 0:
+            _stable = True
             B1 = math.log(z / zo) + beta / L1 * (z - zo);
             H1 = DNp1 / (b * B1 - DNp1 * beta / L1) # 波导高度
             
         # 不稳定情况下
         else:
+            _stable = False
             c1 = z / L1
 
             if c1 >= 0.01:
@@ -140,49 +146,51 @@ def pj2height(t, rh, to, u, p, z):
         if Rib2 <= -3.75:
             Y2 = 0.05 # 经验剖面细数
         elif Rib2 >- 3.75 and Rib2 <= -0.12:
-            Y = 0.065 + 0.004 * Rib
+            Y2 = 0.065 + 0.004 * Rib2
         elif Rib2 >= -0.12 and Rib2 <= 0.14:
             Y2 = 0.109 + 0.367 * Rib2
         else:
             Y2 = 0.155 + 0.021 * Rib2
 
-        L2 = 10 * z * Y2 / Rib2 # M-O长度
+        try:
+            L2 = 10 * z * Y2 / Rib2 # M-O长度
+            # 稳定或中性情况下
+            es2 = 6.105 * math.exp(25.22 * t2 / Tz2 - 5.31 * math.log(Tz2 / 273.2)) # 测量高度空气饱和水汽压
+            e2 = es2 * rh / 100
+            eo2 = 6.105 * math.exp(25.22 * to2 / To2 - 5.31 * math.log(To2 / 273.2)) # 海面饱和水汽压
+            Np2 = 77.6 / Tz2 * (1000 + 4810 / Tz2 * e2)
+            Npo2 = 77.6 / To2 * (1000 + 4810 / To2 * eo2)
+            DNp2 = Np2 - Npo2
 
-        # 稳定或中性情况下
-        es2 = 6.105 * math.exp(25.22 * t2 / Tz2 - 5.31 * math.log(Tz2 / 273.2)) # 测量高度空气饱和水汽压
-        e2 = es2 * rh / 100
-        eo2 = 6.105 * math.exp(25.22 * to2 / To2 - 5.31 * math.log(To2 / 273.2)) # 海面饱和水汽压
-        Np2 = 77.6 / Tz2 * (1000 + 4810 / Tz2 * e2)
-        Npo2 = 77.6 / To2 * (1000 + 4810 / To2 * eo2)
-        DNp2 = Np2 - Npo2
+            if Rib2 >= 0:
+                B2 = math.log(z / zo) + beta / L2 * (z - zo)
+                H2 = DNp2 / (b * B2 - DNp2 * beta / L2) # 波导高度
 
-        if Rib2 >= 0:
-            B2 = math.log(z / zo) + beta / L2 * (z - zo)
-            H2 = DNp2 / (b * B2 - DNp2 * beta / L2) # 波导高度
-
-        # 不稳定情况下
-        else:
-            c2 = z / L2
-
-            if c2 >= 0.01:
-                faith_ccc = -4.5 * c2
-            elif c2 >= -0.026 and c2 < -0.001:
-                faith_ccc = 10**(1.02 * math.log(-c2) + 0.69)
-            elif c2 >= -0.1 and c2 < -0.026:
-                faith_ccc = 10**(0.776 * math.log(-c2) + 0.306)
-            elif c2 >= -1 and c2 < -0.1:
-                faith_ccc = 10**(0.630 * math.log(-c2) + 0.16)
-            elif c2 >= -2.2 and c2 < -1:
-                faith_ccc = 10**(0.414 * math.log(-c2) + 0.16)
+            # 不稳定情况下
             else:
-                faith_ccc = 2
+                c2 = z / L2
 
-            B2 = math.log(z / zo) - faith_ccc;
-            H2 = ((b * B2 / DNp2)**4 - 4 * 4.5 / L2 * ((b * B2 / DNp2)**3))**(-1/4)
+                if c2 >= 0.01:
+                    faith_ccc = -4.5 * c2
+                elif c2 >= -0.026 and c2 < -0.001:
+                    faith_ccc = 10**(1.02 * math.log(-c2) + 0.69)
+                elif c2 >= -0.1 and c2 < -0.026:
+                    faith_ccc = 10**(0.776 * math.log(-c2) + 0.306)
+                elif c2 >= -1 and c2 < -0.1:
+                    faith_ccc = 10**(0.630 * math.log(-c2) + 0.16)
+                elif c2 >= -2.2 and c2 < -1:
+                    faith_ccc = 10**(0.414 * math.log(-c2) + 0.16)
+                else:
+                    faith_ccc = 2
+
+                B2 = math.log(z / zo) - faith_ccc;
+                H2 = ((b * B2 / DNp2)**4 - 4 * 4.5 / L2 * ((b * B2 / DNp2)**3))**(-1/4)
             
+        except Exception as e:
+            H2 = 0
 
-        if H1 <= H2:
-            H = H1
+        if H1 > H2:
+            H = H2
         else:
             Rib = 98 * z * (Tz - To) / (u**2 * Tz) # 理查森数
 
@@ -241,4 +249,10 @@ def pj2height(t, rh, to, u, p, z):
     elif H < 0:
         H = 0
 
-    return H
+    if stable_check:
+        return H, _stable
+    else:
+        return H
+
+
+# pj2height(23.959, 97.46, 21.36, 3.253, 1008.3,65)

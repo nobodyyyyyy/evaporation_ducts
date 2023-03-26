@@ -12,7 +12,7 @@ P = 1021.2
 P = 1009.54
 
 
-def babin_duct_height(t, RH, ts, u, P, height=-1):
+def babin_duct_height(t, RH, ts, u, P, height=-1, stable_check=False):
     """
     :param t: 气温   摄氏度
     :param ts: 海表水温   摄氏度
@@ -22,11 +22,13 @@ def babin_duct_height(t, RH, ts, u, P, height=-1):
     :return: H      波导高度    米
     """
 
-    # zu = 12.5  # 风速测量高度12.5
-    # zt = 12.5  # 温度测量高度
-    # zq = 12.5  # 湿度测量高度
+    zu = 12.5  # 风速测量高度
+    zt = 12.5  # 温度测量高度
+    zq = 12.5  # 湿度测量高度
     if height != -1:
         zu = zt = zq = height
+
+    _stable = False
 
     #  参数设定
     Beta = 1.2  # 阵风系数
@@ -137,10 +139,12 @@ def babin_duct_height(t, RH, ts, u, P, height=-1):
 
     if zet.real >= 0:
         # print('稳定条件下的蒸发波导高度计算')
+        _stable = True
         H = -(B * tsr + C * qsr) / (von * (A + 0.157) + 5 / L * (B * tsr + C * qsr))
 
     else:
         # print('不稳定条件下的蒸发波导高度计算')
+        _stable = False
         H1 = -(B * tsr + C * qsr) * fait(zet) / von / (A + 0.157)
         step = 1
         while Conv == 1 and step < 100:
@@ -151,8 +155,14 @@ def babin_duct_height(t, RH, ts, u, P, height=-1):
             else:
                 H1 = H
             step += 1
-
-    return H.real
+    if H.real > 40:
+        H = 40
+    elif H.real < 0:
+        H = 0
+    if stable_check:
+        return H.real, _stable
+    else:
+        return H.real
 
 
 if __name__ == '__main__':

@@ -4,11 +4,11 @@ from decimal import Decimal
 class MathUtil:
 
     @staticmethod
-    def round(*numbers):
+    def round(*numbers, decimal=0):
         ret = []
         try:
             for _ in numbers:
-                ret.append(round(_))
+                ret.append(round(_, decimal))
         except TypeError as e:
             print('MathUtil.round... TypeError: {}'.format(e))
             return []
