@@ -17,6 +17,30 @@ from openpyxl import Workbook
 from new.Util.TimeUtil import TimeUtil
 
 
+class Station:
+
+    def __init__(self, _id, _lat, _lon, _location, _heights):
+        self.id = _id
+        self.lat = _lat
+        self.lon = _lon
+        self.location = _location
+        self.heights = _heights
+
+
+    def __lt__(self, other):
+        if len(self.heights) == 0:
+            return True
+        elif len(other.heights) == 0 or self.heights[0] == 1:
+            return False
+        elif other.heights[0] == 1:
+            return True
+        return self.heights[0] < other.heights[0]
+
+
+    def __repr__(self):
+        return f'[{self.id}] {self.location}. lat: {self.lat}, lon: {self.lon}. heights: {self.heights}\n'
+
+
 class DataUtils:
 
     _instance = None
@@ -36,6 +60,75 @@ class DataUtils:
             DataUtils._exist = True
             self.nc_dataset_cache = {}
             self.primary_dataset_cache = {}
+
+
+    @staticmethod
+    def get_all_file_names(path, recursive=False, filter_end=None):
+        _ret = []
+        if recursive:
+            # 原子到具体文件路径，递归检查所有子文件夹
+            for path, file_dir, files in os.walk(path):
+                for file_name in files:
+                    # print(os.path.join(path, file_name).replace('\\', '/'))  # 当前循环打印的是当前目录下的所有文件
+                    _name = os.path.join(path, file_name).replace('\\', '/')
+                    if filter_end is None or _name.endswith(filter_end):
+                        _ret.append(_name)
+                # for _dir in file_dir:
+                #     print(os.path.join(path, _dir).replace('\\', '/'))  # 当前打印的是当前目录下的文件目录
+        else:
+            # 只拿一层，但不管你是不是文件夹
+            _temp = os.listdir(path)
+            for _name in _temp:
+                if filter_end is None or _name.endswith(filter_end):
+                    _ret.append(_name)
+        return _ret
+
+
+    @staticmethod
+    def get_proper_sounding_data_info(root_path, n_heights=10):
+        """
+        由于探空点位太高，所以要找一些点位低的探测点
+        取第一天的数据即可
+        """
+        _folders = DataUtils.get_all_file_names(root_path)
+        # _file_name = root_path + '{}/{}_2020-01-01_00UTC.txt'
+        stations = []
+        for _f in _folders:
+            if _f.endswith('.png'):
+                continue
+            _folder_name = root_path + '{}/'.format(_f)
+            _file_name = _folder_name + os.listdir(_folder_name)[0]  # 拿第一个 txt 文件
+            with open(_file_name, mode='r') as _file:
+                line = _file.readlines()
+                pos_line = 2
+                try:
+                    location = re.findall('(?<=<H3>).*?(?=</H3>)', line[1])[0]
+                except IndexError as e:
+                    location = ''
+                    pos_line = 1
+                lat = float(re.findall('(?<=Latitude: ).*?(?= Longitude:)', line[pos_line])[0])
+                lng = float(re.findall('(?<=Longitude:).*?(?=</I>)', line[pos_line])[0])
+                header = line[5]
+
+                col_index = DataUtils.get_heading_idx_for_sounding_txt(header)
+                col = 2
+                height_idx_l = col_index[col - 1]
+                height_idx_r = col_index[col] + 1
+
+                heights = []
+
+                _start = 8
+                _ = _start
+                while _ < len(line) - 1 and _ < _start + n_heights:
+                    _val = line[_][height_idx_l: height_idx_r].strip()  # 取高度值
+                    _ += 1
+                    heights.append(float(_val) if _val else -1)
+
+                station = Station(_id=_f, _lat=lat, _lon=lng, _location=location, _heights=heights)
+                stations.append(station)
+
+        stations = sorted(stations)
+        print(stations)
 
 
     @staticmethod
@@ -59,6 +152,26 @@ class DataUtils:
         return wb, ws
 
 
+
+    @staticmethod
+    def get_heading_idx_for_sounding_txt(header):
+        col_index = [0]
+        _l = -1
+        processing = False
+        for _r in range(len(header)):
+            if header[_r] == ' ' and _l == -1:
+                continue
+            elif header[_r] != ' ' and not processing:
+                _l = _r
+                processing = True
+            elif header[_r] == ' ' and processing:
+                processing = False
+                col_index.append(_r)
+                _l = _r
+        col_index.append(_r)
+        return col_index
+
+
     @staticmethod
     def txt_file_to_npy(dir_, dest_, batch=False):
         """
@@ -72,8 +185,7 @@ class DataUtils:
         files = []
 
         if batch:
-            for file_name in os.listdir(dir_):
-                files.append(file_name)
+            files = DataUtils.get_all_file_names(path=dir_, recursive=False)
         else:
             files.append(dir_)
 
@@ -88,20 +200,7 @@ class DataUtils:
                 # bugfix: 12/9/2022 yrt 原本代码无法支持数据缺失和数据长度异常、过大等问题
             # 由于数据是右对齐的，所以取 header 的最右边的列，可以拿到对应的数据右边界
             header = line[5]
-            col_index = [0]
-            _l = -1
-            processing = False
-            for _r in range(len(header)):
-                if header[_r] == ' ' and _l == -1:
-                    continue
-                elif header[_r] != ' ' and not processing:
-                    _l = _r
-                    processing = True
-                elif header[_r] == ' ' and processing:
-                    processing = False
-                    col_index.append(_r)
-                    _l = _r
-            col_index.append(_r)
+            col_index = DataUtils.get_heading_idx_for_sounding_txt(header)
 
             lst = []
             entries = ["PRES", "HGNT", "TEMP", "DWPT", "RELH", "MIXR", "DRCT", "SPED", "THTA", "THTE", "THTV"]
@@ -291,8 +390,10 @@ if __name__ == '__main__':
     # DataUtils.txt_file_to_npy('./CN/test1.txt', './CN/shantou.npy')
     # DataUtils.txt_file_to_npy('./CN/test2.txt', './CN/haikou.npy')
 
-    DataUtils.txt_file_to_npy('../data/test_2022_12_02/sounding_data/stn_59758',
-                              '../data/test_2022_12_02/sounding_data/stn_59758_processed',
-                              batch=True)
+    # DataUtils.txt_file_to_npy('../data/test_2022_12_02/sounding_data/stn_59758',
+    #                           '../data/test_2022_12_02/sounding_data/stn_59758_processed',
+    #                           batch=True)
+
+    print(DataUtils.get_proper_sounding_data_info('../data/sounding/', n_heights=10))
 
     pass
