@@ -148,3 +148,24 @@ def get_duct_height(m_list, z_list, caller='', debug=False):
     if debug:
         print('{}... cannot get duct height'.format(caller))
     return -1, -1
+
+
+def cal_height(p, t, method='hypsometric'):
+    """
+    根据压强和气温计算高度
+    :param method: 计算方法
+    :param p: kPa 千帕 ！
+    :param t: 摄氏度
+    """
+    p0 = 101.325
+    if method.lower() == 'hypsometric':
+        return ((pow(p0 / p, 1 / 5.257) - 1) * (t + 273.15)) / 0.0065
+    elif method.lower() == 'barometric':
+        return 44330 * (1 - pow(p / p0, 1 / 5.257))
+    else:
+        print('cal_height... method {} not supported'.format(method))
+        return -1
+
+
+if __name__ == '__main__':
+    print(cal_height(93.0, -22.8))

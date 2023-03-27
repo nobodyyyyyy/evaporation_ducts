@@ -147,7 +147,7 @@ class HeightCal:
             res.append(tmp_res)
 
         # wrt
-        wb, ws = DataUtils.excel_writer_prepare(header=header, output_name=output_name)
+        wb, ws, output_name = DataUtils.excel_writer_prepare(header=header, output_name=output_name)
 
         name = DataUtils.get_file_name(data_dir)
         input_data = self.dataset_cache[name]  # you can always find target in cache
@@ -208,7 +208,7 @@ class HeightCal:
             print('batch_cal_and_record_all_models... appending {}'.format(cur_res))
             res.append(cur_res)
 
-        wb, ws = DataUtils.excel_writer_prepare(header=header, output_name=output_name)
+        wb, ws, output_name = DataUtils.excel_writer_prepare(header=header, output_name=output_name)
 
         for l in res:
             ws.append(l)
@@ -242,12 +242,12 @@ class HeightCal:
 
     def batch_cal_real_height(self, data_dir):
         # debug only
-        wb, ws = DataUtils.excel_writer_prepare(header=['时间'], output_name='real')
+        wb, ws, output_name = DataUtils.excel_writer_prepare(header=['时间'], output_name='real')
         for file_name in os.listdir(data_dir):
             # print('{}, res = {}'.format(file_name, self.cal_real_height(data_dir + '/' + file_name, debug=False)))
             h, _ = self.cal_real_height(data_dir + '/' + file_name, debug=False)
             ws.append([file_name, h])
-        wb.save('real.xlsx')
+        wb.save(output_name)
 
     def batch_sensitivity_analyze(self, data_dir, model, year, month, day, lan, lng, sst=0, output_name=''):
         """

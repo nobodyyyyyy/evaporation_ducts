@@ -85,7 +85,7 @@ class DataUtils:
 
 
     @staticmethod
-    def get_proper_sounding_data_info(root_path, n_heights=10):
+    def get_proper_sounding_data_info(root_path, n_heights=10, wrt=False):
         """
         由于探空点位太高，所以要找一些点位低的探测点
         取第一天的数据即可
@@ -130,6 +130,20 @@ class DataUtils:
         stations = sorted(stations)
         print(stations)
 
+        if wrt:
+            # 写 excel
+            wb, ws, output_name = DataUtils.excel_writer_prepare(header=['站点id', '位置', 'lat', 'lng'],
+                                                                 output_name='station_height.xlsx')
+            for s in stations:
+                line = [s.id, s.location, s.lat, s.lon]
+                for h in s.heights:
+                    line.append(h)
+                ws.append(line)
+
+            wb.save(filename=output_name)
+
+        return stations
+
 
     @staticmethod
     def get_file_name(dir_):
@@ -145,12 +159,11 @@ class DataUtils:
 
         if output_name == '':
             output_name = 'output'
-        if output_name.split('.')[-1] != 'xlsx' or output_name.split('.')[-1] != 'xls':
+        if output_name.split('.')[-1] != 'xlsx' and output_name.split('.')[-1] != 'xls':
             output_name += '.xlsx'
         if header is not None:
             ws.append(header)
-        return wb, ws
-
+        return wb, ws, output_name
 
 
     @staticmethod
@@ -394,6 +407,6 @@ if __name__ == '__main__':
     #                           '../data/test_2022_12_02/sounding_data/stn_59758_processed',
     #                           batch=True)
 
-    print(DataUtils.get_proper_sounding_data_info('../data/sounding/', n_heights=10))
+    print(DataUtils.get_proper_sounding_data_info('../data/sounding/', n_heights=10, wrt=True))
 
     pass
