@@ -1,12 +1,6 @@
 import bisect
 import os
-import re
 import time
-
-# vscode里面我需要额外配置
-# import sys
-# import os
-# sys.path.append(os.getcwd())
 import warnings
 
 import numpy as np
@@ -17,30 +11,6 @@ from openpyxl import Workbook
 from new.Util.TimeUtil import TimeUtil
 
 
-class Station:
-
-    def __init__(self, _id, _lat, _lon, _location, _heights):
-        self.id = _id
-        self.lat = _lat
-        self.lon = _lon
-        self.location = _location
-        self.heights = _heights
-
-
-    def __lt__(self, other):
-        if len(self.heights) == 0:
-            return True
-        elif len(other.heights) == 0 or self.heights[0] == 1:
-            return False
-        elif other.heights[0] == 1:
-            return True
-        return self.heights[0] < other.heights[0]
-
-
-    def __repr__(self):
-        return f'[{self.id}] {self.location}. lat: {self.lat}, lon: {self.lon}. heights: {self.heights}\n'
-
-
 class DataUtils:
 
     _instance = None
@@ -48,6 +18,29 @@ class DataUtils:
 
     FILE_TYPE_NOAA = 1
     FILE_TYPE_EAR5 = 2
+
+
+    class Station:
+
+        def __init__(self, _id, _lat, _lon, _location, _heights):
+            self.id = _id
+            self.lat = _lat
+            self.lon = _lon
+            self.location = _location
+            self.heights = _heights
+
+        def __lt__(self, other):
+            if len(self.heights) == 0:
+                return True
+            elif len(other.heights) == 0 or self.heights[0] == 1:
+                return False
+            elif other.heights[0] == 1:
+                return True
+            return self.heights[0] < other.heights[0]
+
+        def __repr__(self):
+            return f'[{self.id}] {self.location}. lat: {self.lat}, lon: {self.lon}. heights: {self.heights}\n'
+
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -85,67 +78,6 @@ class DataUtils:
 
 
     @staticmethod
-    def get_proper_sounding_data_info(root_path, n_heights=10, wrt=False):
-        """
-        由于探空点位太高，所以要找一些点位低的探测点
-        取第一天的数据即可
-        """
-        _folders = DataUtils.get_all_file_names(root_path)
-        # _file_name = root_path + '{}/{}_2020-01-01_00UTC.txt'
-        stations = []
-        for _f in _folders:
-            if _f.endswith('.png'):
-                continue
-            _folder_name = root_path + '{}/'.format(_f)
-            _file_name = _folder_name + os.listdir(_folder_name)[0]  # 拿第一个 txt 文件
-            with open(_file_name, mode='r') as _file:
-                line = _file.readlines()
-                pos_line = 2
-                try:
-                    location = re.findall('(?<=<H3>).*?(?=</H3>)', line[1])[0]
-                except IndexError as e:
-                    location = ''
-                    pos_line = 1
-                lat = float(re.findall('(?<=Latitude: ).*?(?= Longitude:)', line[pos_line])[0])
-                lng = float(re.findall('(?<=Longitude:).*?(?=</I>)', line[pos_line])[0])
-                header = line[5]
-
-                col_index = DataUtils.get_heading_idx_for_sounding_txt(header)
-                col = 2
-                height_idx_l = col_index[col - 1]
-                height_idx_r = col_index[col] + 1
-
-                heights = []
-
-                _start = 8
-                _ = _start
-                while _ < len(line) - 1 and _ < _start + n_heights:
-                    _val = line[_][height_idx_l: height_idx_r].strip()  # 取高度值
-                    _ += 1
-                    heights.append(float(_val) if _val else -1)
-
-                station = Station(_id=_f, _lat=lat, _lon=lng, _location=location, _heights=heights)
-                stations.append(station)
-
-        stations = sorted(stations)
-        print(stations)
-
-        if wrt:
-            # 写 excel
-            wb, ws, output_name = DataUtils.excel_writer_prepare(header=['站点id', '位置', 'lat', 'lng'],
-                                                                 output_name='station_height.xlsx')
-            for s in stations:
-                line = [s.id, s.location, s.lat, s.lon]
-                for h in s.heights:
-                    line.append(h)
-                ws.append(line)
-
-            wb.save(filename=output_name)
-
-        return stations
-
-
-    @staticmethod
     def get_file_name(dir_):
         return dir_.split('/')[-1]
 
@@ -168,6 +100,8 @@ class DataUtils:
 
     @staticmethod
     def get_heading_idx_for_sounding_txt(header):
+        # todo 有负数符号的情况会有 bug!
+        # eg. 52323 站点
         col_index = [0]
         _l = -1
         processing = False
@@ -228,6 +162,10 @@ class DataUtils:
                 lst.append(temp.copy())
 
             np.save(output, lst)
+        try:
+            print('txt_file_to_npy Complete for station {}'.format(dir_.split('/')[-1]))
+        except:
+            print('txt_file_to_npy Complete.')
 
 
     @staticmethod
@@ -406,7 +344,5 @@ if __name__ == '__main__':
     # DataUtils.txt_file_to_npy('../data/test_2022_12_02/sounding_data/stn_59758',
     #                           '../data/test_2022_12_02/sounding_data/stn_59758_processed',
     #                           batch=True)
-
-    print(DataUtils.get_proper_sounding_data_info('../data/sounding/', n_heights=10, wrt=True))
-
+    DataUtils.txt_file_to_npy('./sounding/stn_52533/stn_52533_2020-01-01_00UTC.txt', './tes')
     pass

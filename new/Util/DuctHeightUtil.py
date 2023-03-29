@@ -150,7 +150,7 @@ def get_duct_height(m_list, z_list, caller='', debug=False):
     return -1, -1
 
 
-def cal_height(p, t, method='hypsometric'):
+def cal_height_with_p_and_t(p, t, method='hypsometric'):
     """
     根据压强和气温计算高度
     :param method: 计算方法
@@ -168,4 +168,4 @@ def cal_height(p, t, method='hypsometric'):
 
 
 if __name__ == '__main__':
-    print(cal_height(93.0, -22.8))
+    print(cal_height_with_p_and_t(94.9, -30))

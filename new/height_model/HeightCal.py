@@ -25,10 +25,12 @@ class HeightCal:
 
     SST_NOT_FOUND = -999
 
+
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
+
 
     def __init__(self):
         if not HeightCal._exist:
@@ -42,6 +44,7 @@ class HeightCal:
             }
             self.models = [nps_duct_height, babin_duct_height, evap_duct_SST, pj2height]
             self.sst_cache = {}
+
 
     def get_sst(self, year: int, month: int, day: int, lan: float, lng: float, _type):
         if (year, month, lan, lng) in self.sst_cache.keys():
@@ -67,6 +70,7 @@ class HeightCal:
         self.sst_cache[(year, month, lan, lng)] = sst
         return sst
 
+
     def get_data(self, data_dir, year, month, day, lan, lng, sst=-999, sst_type=DataUtils.FILE_TYPE_EAR5):
         if sst == HeightCal.SST_NOT_FOUND:
             sst = self.get_sst(year, month, day, lan, lng, sst_type)
@@ -77,6 +81,7 @@ class HeightCal:
             dataset = np.load(data_dir, allow_pickle=True)
             self.dataset_cache[name] = dataset
         return dataset, sst
+
 
     def cal_height(self, data_dir, model, year, month, day, lan, lng, sst=-999, nrows=1):
         dataset, sst = self.get_data(data_dir, year, month, day, lan, lng, sst)
@@ -98,6 +103,7 @@ class HeightCal:
             res.append(self.cal_height_with_data(e, sst, func))
             _ += 1
         return res
+
 
     def cal_height_with_data(self, e, sst, model, stable_check=False):
         """
@@ -133,6 +139,7 @@ class HeightCal:
             return res, is_stable
         return res
 
+
     def cal_and_record_all_models(self, data_dir, year, month, day, lan, lng, output_name='',
                                   nrows=1, sst_type=DataUtils.FILE_TYPE_EAR5):
         wb = Workbook()
@@ -159,6 +166,7 @@ class HeightCal:
                 line.append(res[j][i])
             ws.append(line)
         wb.save(filename=output_name)
+
 
     def batch_cal_and_record_all_models(self, data_dir, lan, lng, output_name='', stable_check=False):
         """
@@ -214,6 +222,7 @@ class HeightCal:
             ws.append(l)
         wb.save(filename=output_name)
 
+
     def cal_real_height(self, data_dir, debug=False):
         """
         计算不同高度的折射率，画出廓线，找到拐点，得到真实的大气波导高度
@@ -240,6 +249,7 @@ class HeightCal:
             _Zs.append(h)
         return get_duct_height(_Ms, _Zs, caller='cal_real_height')
 
+
     def batch_cal_real_height(self, data_dir):
         # debug only
         wb, ws, output_name = DataUtils.excel_writer_prepare(header=['时间'], output_name='real')
@@ -248,6 +258,7 @@ class HeightCal:
             h, _ = self.cal_real_height(data_dir + '/' + file_name, debug=False)
             ws.append([file_name, h])
         wb.save(output_name)
+
 
     def batch_sensitivity_analyze(self, data_dir, model, year, month, day, lan, lng, sst=0, output_name=''):
         """
@@ -267,6 +278,7 @@ class HeightCal:
             print('sensitivity_analyze... data incomplete: [{}, {}, {}, {}, {}, {}]'.format(t, eh, sst, u, p, h))
             return
         return self.single_sensitivity_analyze(t, eh, u, p, h, sst, model, output_name)
+
 
     def single_sensitivity_analyze(self, t, eh, u, p, h, sst, model, output_name='',
                                    disturbance_type=DISTUR_COE,
@@ -351,6 +363,7 @@ class HeightCal:
 
         return True
 
+
     @staticmethod
     def random_disturbance_prepare(t, eh, sst, u, p, h, u_gap=2, t_gap=2, eh_gap=3, times=10):
         """
@@ -372,6 +385,7 @@ class HeightCal:
                 continue
             ret.append([t_val, eh_val, sst, u_val, p, h])
         return ret
+
 
     @staticmethod
     def disturbance_prepare(t, eh, sst, u, p, h, lowers=None, uppers=None, gaps=None, round_first=False):
@@ -414,12 +428,12 @@ if __name__ == '__main__':
     c = HeightCal()
     # c.batch_sensitivity_analyze('../data/CN/haikou.npy', 'all', 2021, 11, 29, 20, 110.250, output_name='sensi')
     # print(c.single_sensitivity_analyze(24.1,	90,		4.1,	1008.4,	65, 23.58, 'all'))
-    print(c.single_sensitivity_analyze(25.7, 85, 3,  1000.1, 65, 29.19, 'all'))
+    # print(c.single_sensitivity_analyze(25.7, 85, 3,  1000.1, 65, 29.19, 'all'))
     # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=1
     # c.batch_cal_and_record_all_models('../data/test_2022_12_02/sounding_data/stn_59758_processed', 20.000, 110.250,
     #                                   output_name='haikou_all_stable_noaa3.xlsx', stable_check=True)
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
     # c.cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed/stn_59758_2021-12-20_00UTC.npy')
-    # c.batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
+    c.batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
     pass
