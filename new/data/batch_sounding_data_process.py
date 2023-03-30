@@ -26,16 +26,19 @@ class SoundingDataProcess(DataUtils):
 
 
     @staticmethod
-    def batch_interpolation_4_height(root_path, avg_num=5, method='hypsometric'):
+    def batch_interpolation_4_height(root_path, dest_path, avg_num=5, method='hypsometric', debug=False):
         """
         高度插值，根据前五个探测点的温度和压强，根据 hypsometric 或 barometric 求值，
         找到平均差值，然后填补当天空余的测量高度
         """
         _folders = DataUtils.get_all_file_names(root_path)
         for _sub_folder in _folders:
+            os.makedirs(dest_path + _sub_folder, exist_ok=True)
             _sub_folders = DataUtils.get_all_file_names(root_path + _sub_folder)
             for _f in _sub_folders:
-                _dataset = np.load(root_path + _sub_folder + '/' + _f, allow_pickle=True)
+                _file_name = root_path + _sub_folder + '/' + _f
+                _dest_name = dest_path + _sub_folder + '/' + _f
+                _dataset = np.load(_file_name, allow_pickle=True)
                 valid_cnt = 0
                 valid_sum = 0
                 for _ in range(avg_num):
@@ -48,18 +51,34 @@ class SoundingDataProcess(DataUtils):
                     else:
                         real_pres = real_pres * 0.1  # hPa to kPa
                         cal_hgt = DuctHeightUtil.cal_height_with_p_and_t(real_pres, real_temp, method=method)
-                        gap = real_pres - cal_hgt  # 真实值在前，即后面计算出来的值要 - gap
+                        gap = real_hgt - cal_hgt  # 真实值在前，即后面计算出来的值要 - gap
                         valid_sum += gap
                         valid_cnt += 1
+                if valid_cnt == 0:
+                    print('batch_interpolation_4_height... Valid_cnt = 0 for file {}'.format(_f))
+                    continue
+
                 offset = valid_sum / valid_cnt
-                for e in _dataset:
+
+                for _ in range(_dataset.size):
+                    e = _dataset[_]
                     if e['HGNT'] is None:
                         if e['TEMP'] is not None and e['PRES'] is not None:
                             cal_hgt = DuctHeightUtil.cal_height_with_p_and_t(e['PRES'] * 0.1, e['TEMP'], method=method)
+                            hgt = round(cal_hgt + offset, 1)
+                            if 0 < _ < _dataset.size - 1:
+                                if _dataset[_ + 1]['HGNT'] is not None and _dataset[_ - 1]['HGNT'] is not None:
+                                    if hgt < _dataset[_ - 1]['HGNT'] or hgt > _dataset[_ + 1]['HGNT']:
+                                        if debug:
+                                            print('batch_interpolation_4_height... Invalid interpolation.'
+                                                  'Setting val to avg. File: {}'.format(_f))
+                                        hgt = (_dataset[_ - 1]['HGNT'] + _dataset[_ + 1]['HGNT']) / 2
 
+                            e['HGNT'] = hgt
                         else:
                             print('batch_interpolation_4_height... Cannot interpolation for file {}'.format(_f))
-
+                np.save(_dest_name, _dataset)
+        print('batch_interpolation_4_height... Complete')
 
 
     @staticmethod
@@ -126,4 +145,4 @@ class SoundingDataProcess(DataUtils):
 
 if __name__ == '__main__':
     # print(SoundingDataProcess.get_proper_sounding_data_info('../data/sounding/', n_heights=10, wrt=True))
-    SoundingDataProcess.batch_interpolation_4_height('../data/sounding_processed/')
+    SoundingDataProcess.batch_interpolation_4_height('../data/sounding_processed/', '../data/sounding_processed_hgt/')
