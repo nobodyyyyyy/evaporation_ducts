@@ -26,6 +26,10 @@ def qsee(ts, P):
 
 def evap_duct_SST(t, RH, ts, u, P, height=-1, stable_check=False):
     # 有海温情况下的蒸发波导计算
+
+    if u == 0:
+        u = 0.1
+
     zu = 12
     zt = 12
     zq = 12
@@ -598,8 +602,8 @@ def evap_duct_SST(t, RH, ts, u, P, height=-1, stable_check=False):
             HH1 = HH
             HH = (E * Hs + F * Hl) / (
                         von * (A + 0.157) * np.abs(np.sqrt(tao / rhoa)) * abs(np.sqrt(1 - 16 * HH / zz * ZL)))
-    if HH > 40:
-        HH = 40
+    if HH > 18:
+        HH = 0
     elif HH < 0 or np.isnan(HH):
         HH = 0
 
@@ -610,5 +614,6 @@ def evap_duct_SST(t, RH, ts, u, P, height=-1, stable_check=False):
 
 
 if __name__ == "__main__":
-    evap = evap_duct_SST(19, 24.5554752349854, 99, 4.100, 1014.3000)
+    # t, RH, ts, u, P, height=-1
+    evap = evap_duct_SST(-0.4, 45, 99, 3, 1022.3, 32)
     print(evap)

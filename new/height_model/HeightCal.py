@@ -9,6 +9,7 @@ from new.Util.EvalUtil import EvalUtil
 from new.Util.MathUtil import MathUtil
 from new.data.DataUtil import DataUtils
 from new.Util.TimeUtil import TimeUtil
+from new.data.batch_sounding_data_process import SoundingDataProcess
 from new.height_model.models.babin import babin_duct_height
 from new.height_model.models.nps import nps_duct_height
 from new.height_model.models.pj2height import pj2height
@@ -32,27 +33,56 @@ class HeightCal:
         return cls._instance
 
 
-    def __init__(self):
+    def __init__(self, txt_root_file):
         if not HeightCal._exist:
             HeightCal._exist = True
             self.dataset_cache = {}
             self.model_entry = {
                 'nps': 0,
                 'babin': 1,
-                'sst': 2,
+                'liuli2.0': 2,
                 'pj': 3
             }
             self.models = [nps_duct_height, babin_duct_height, evap_duct_SST, pj2height]
             self.sst_cache = {}
+            self.station_info = {}  # {stn_12345: Station instance}
+            self.init_station_infos(txt_root_file)
+
+
+    def init_station_infos(self, txt_root_file, filtered=True):
+        """
+        初始化站点信息，读的是原始的 txt 文件，主要是为了拿到一个站点对应的经纬度信息
+        """
+        if not filtered:
+            _folders = DataUtils.get_all_file_names(txt_root_file)
+        else:
+            _folders = SoundingDataProcess.SELECTED_ID
+        for station_name in _folders:
+            station_path = txt_root_file + '/' + station_name
+            if station_name not in self.station_info.keys():
+                tmp_file = DataUtils.get_all_file_names(station_path)[0]
+                with open(station_path + '/' + tmp_file, mode='r') as _file:
+                    line = _file.readlines()
+                    pos_line = 2
+                    try:
+                        location = DataUtils.get_location_4_stn_data(line[1])
+                    except IndexError as e:
+                        location = ''
+                        pos_line = 1
+                    lat, lng = DataUtils.get_lat_and_lon_4_stn_data(line[pos_line])
+                self.station_info[station_name] = DataUtils.Station(_id=station_name, _lat=lat,
+                                                                    _lon=lng, _location=location,
+                                                                    _heights=[])
+
 
 
     def get_sst(self, year: int, month: int, day: int, lan: float, lng: float, _type):
         if (year, month, lan, lng) in self.sst_cache.keys():
             return self.sst_cache[(year, month, lan, lng)]
         time_ = TimeUtil.to_time_millis(year, month, day, 0, 0, 0)
-        month = TimeUtil.format_month_or_day(month)
+        month_ = TimeUtil.format_month_or_day(month)
         if _type == DataUtils.FILE_TYPE_EAR5:
-            sst_file = '../data/ERA5_daily/sst/sst.{}-{}.daily.nc'.format(year, month)
+            sst_file = '../data/ERA5_daily/sst/sst.{}-{}.daily.nc'.format(year, month_)
         elif _type == DataUtils.FILE_TYPE_NOAA:
             sst_file = '../data/test_2022_12_02/NOAA_daily_SST/sst.day.mean.{}.nc'.format(year)
         else:
@@ -60,11 +90,19 @@ class HeightCal:
             return HeightCal.SST_NOT_FOUND
 
         try:
-            sst = DataUtils.get_support_data(year, month, 'sst', lan, lng, time_,
+            sst = DataUtils.get_support_data(year, month_, 'sst', lan, lng, time_,
                                                      file_name=sst_file, file_type=_type)
         except FileNotFoundError as e:
-            print('get_sst... no such file to read sst info. Errinfo: {}'.format(e))
+            print('get_sst... no such file to read sst info. Err info: {}'.format(e))
             return HeightCal.SST_NOT_FOUND
+        except Exception as e2:
+            print('get_sst... Err info: {}'.format(e2))
+            return HeightCal.SST_NOT_FOUND
+
+        if sst == HeightCal.SST_NOT_FOUND:
+            self.sst_cache[(year, month, lan, lng)] = sst
+            return sst
+
         if _type == DataUtils.FILE_TYPE_EAR5:
             sst = kelvins2degrees(sst)
         self.sst_cache[(year, month, lan, lng)] = sst
@@ -168,7 +206,7 @@ class HeightCal:
         wb.save(filename=output_name)
 
 
-    def batch_cal_and_record_all_models(self, data_dir, lan, lng, output_name='', stable_check=False):
+    def single_station_batch_cal_and_record_all_models(self, data_dir, lan, lng, output_name='', stable_check=False):
         """
         批处理模型高度计算，全模型。
         其实可以和 cal_and_record_all_models 结合，但没必要引入非必要的耦合
@@ -195,12 +233,17 @@ class HeightCal:
             _year, _month, _day = TimeUtil.format_date_to_year_month_day(date_str)
             _file = data_dir + '/' + file  # real dir
 
-            dataset, sst = self.get_data(_file, _year, _month, _day, lan, lng, sst_type=DataUtils.FILE_TYPE_NOAA)
+            dataset, sst = self.get_data(_file, _year, _month, _day, lan, lng, sst_type=DataUtils.FILE_TYPE_EAR5)
             ele = dataset[0]
             cur_res = [date_str, ele['TEMP'], ele['RELH'], sst, ele['SPED'], ele['PRES'], ele['HGNT']]
             if sst == HeightCal.SST_NOT_FOUND:
+                # 2023/4/3 逻辑变更，如果找不到 sst，就说明这个站点所有的观测值都找不到，因为经纬度一样，直接返回即可
+                # 但是如果一个文件夹有很多历史日期也会退出，还是先保留原逻辑吧
+                # print('[Error] single_station_batch_cal_and_record_all_models... '
+                #       'Can not fetch sst val. Exiting...')
                 res.append(cur_res)
                 continue
+                # return
             for _model in self.model_entry.keys():
                 try:
                     if stable_check:
@@ -211,9 +254,11 @@ class HeightCal:
                         height = self.cal_height_with_data(ele, sst, _model)
                         cur_res.append(height)
                 except Exception as err:
-                    print('batch_cal_and_record_all_models... error for file: {}\n Info: {}'.format(file, err))
+                    print('single_station_batch_cal_and_record_all_models... '
+                          'error for file: {}\n Info: {}'.format(file, err))
                     cur_res.append(None)
-            print('batch_cal_and_record_all_models... appending {}'.format(cur_res))
+            print('single_station_batch_cal_and_record_all_models... '
+                  'appending {}'.format(cur_res))
             res.append(cur_res)
 
         wb, ws, output_name = DataUtils.excel_writer_prepare(header=header, output_name=output_name)
@@ -221,6 +266,20 @@ class HeightCal:
         for l in res:
             ws.append(l)
         wb.save(filename=output_name)
+
+
+    def stations_batch_cal_and_record_all_models(self, root_dir):
+        _files = DataUtils.get_all_file_names(root_dir)
+
+        for station_name in _files:
+            if station_name not in SoundingDataProcess.SELECTED_ID:
+                # todo 加限制。
+                continue
+            station_path = root_dir + '/' + station_name
+            station = self.station_info[station_name]
+            self.single_station_batch_cal_and_record_all_models(data_dir=station_path, lan=station.lat, lng=station.lon,
+                                                                output_name='./selected_stations/' + station_name)
+
 
 
     def cal_real_height(self, data_dir, debug=False):
@@ -425,7 +484,7 @@ class HeightCal:
 
 
 if __name__ == '__main__':
-    c = HeightCal()
+    c = HeightCal('../data/sounding')
     # c.batch_sensitivity_analyze('../data/CN/haikou.npy', 'all', 2021, 11, 29, 20, 110.250, output_name='sensi')
     # print(c.single_sensitivity_analyze(24.1,	90,		4.1,	1008.4,	65, 23.58, 'all'))
     # print(c.single_sensitivity_analyze(25.7, 85, 3,  1000.1, 65, 29.19, 'all'))
@@ -435,5 +494,6 @@ if __name__ == '__main__':
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
     # c.cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed/stn_59758_2021-12-20_00UTC.npy')
-    c.batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
+    # c.batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
+    c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
     pass

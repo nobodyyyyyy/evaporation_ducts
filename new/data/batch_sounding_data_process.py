@@ -10,7 +10,7 @@ from new.data.DataUtil import DataUtils
 class SoundingDataProcess(DataUtils):
 
 
-    SELECTED_ID = ['stn_58150', 'stn_59316', 'stn_58665', 'stn_59981', 'stn_58362', 'stn_57494', 'stn_54511',
+    SELECTED_ID = ['stn_58150', 'stn_59316', 'stn_58665', 'stn_59981', 'stn_58362', 'stn_54511',
                    'stn_58203', 'stn_58238', 'stn_58027', 'stn_58457', 'stn_58606', 'stn_58424', 'stn_59758']
 
 
@@ -99,13 +99,12 @@ class SoundingDataProcess(DataUtils):
                 line = _file.readlines()
                 pos_line = 2
                 try:
-                    location = re.findall('(?<=<H3>).*?(?=</H3>)', line[1])[0]
+                    location = DataUtils.get_location_4_stn_data(line[1])
                 except IndexError as e:
                     print(f'Error processing file {_f} with err: {e}')
                     location = ''
                     pos_line = 1
-                lat = float(re.findall('(?<=Latitude: ).*?(?= Longitude:)', line[pos_line])[0])
-                lng = float(re.findall('(?<=Longitude:).*?(?=</I>)', line[pos_line])[0])
+                lat, lng = DataUtils.get_lat_and_lon_4_stn_data(line[pos_line])
                 header = line[5]
 
                 col_index = DataUtils.get_heading_idx_for_sounding_txt(header)

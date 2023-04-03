@@ -1,5 +1,6 @@
 import bisect
 import os
+import re
 import time
 import warnings
 
@@ -117,6 +118,21 @@ class DataUtils:
                 _l = _r
         col_index.append(_r)
         return col_index
+
+
+    @staticmethod
+    def get_lat_and_lon_4_stn_data(_str):
+        """
+        传入 stn 格式的经纬度行，提取经纬度
+        """
+        lat = float(re.findall('(?<=Latitude: ).*?(?= Longitude:)', _str)[0])
+        lng = float(re.findall('(?<=Longitude:).*?(?=</I>)', _str)[0])
+        return lat, lng
+
+
+    @staticmethod
+    def get_location_4_stn_data(_str):
+        return re.findall('(?<=<H3>).*?(?=</H3>)', _str)[0]
 
 
     @staticmethod
@@ -247,7 +263,7 @@ class DataUtils:
 
     @staticmethod
     def get_support_data(year:int, month:int, type_:str, lan:float, lng:float, time_, level=-1,
-                         file_name='', file_type=FILE_TYPE_EAR5):
+                         file_name='', file_type=FILE_TYPE_EAR5, search_bounds=5):
         """
         获取辅助数据，主要是 nc 文件内容
         :param month:
@@ -259,6 +275,7 @@ class DataUtils:
         :param level: air pressure level 只能取特定的取值，见文档
         :param file_name: 如果需要直接指定文件名，传入该项
         :param file_type: era5 和 noaa 文件的 key 可能不同
+        :param search_bounds: 一个位置查找不到，在周围查找的数组下标界限
         :return: 所需 data
         """
         month = TimeUtil.format_month_or_day(month)
@@ -275,7 +292,7 @@ class DataUtils:
             nc_timestamp = TimeUtil.time_millis_2_noaa_timestamp(time_)
         else:
             print('get_support_data... file type [{}] not supported.'.format(file_type))
-            return -1
+            return -999
 
         if file_name.strip() == '':
             # 没指定的一律读 era5 daily
@@ -284,14 +301,14 @@ class DataUtils:
         else:
             file = file_name
         inst = DataUtils()
-        if file not in inst.nc_dataset_cache.keys():
+        if DataUtils.get_file_name(file) not in inst.nc_dataset_cache.keys():
             dataset = nc.Dataset(file)
             inst.nc_dataset_cache[DataUtils.get_file_name(file)] = dataset
         else:
             dataset = inst.nc_dataset_cache[DataUtils.get_file_name(file)]
         if dataset is None:
             print('get_support_data... Could not load dataset for file: {}'.format(file))
-            return
+            return -999
 
         lats = np.array(dataset.variables[lat_desp][:])
         lngs = np.array(dataset.variables[lon_desp][:])
@@ -313,19 +330,47 @@ class DataUtils:
                 time_idx = day  # 加一天
             else:
                 time_idx = day - 1
-
         if type_ in ['skt', 'slp', 'sst', 'u10m', 'v10m']:
             # data with shape (time, latitude, longitude)
-            return dataset.variables[type_][time_idx][lat_idx][lng_idx]
+            data_type = 1
+            val = dataset.variables[type_][time_idx][lat_idx][lng_idx]
+
         elif type_ in ['omega', 'q', 'temp', 'uwind', 'vwind', 'zg']:
             # data with shape (time, level, latitude, longitude)
+            data_type = 2
             if level == -1:
                 print('Request level')
-                return -1
+                return -999
             levels = np.array(dataset.variables['level'][:])
             level_idx = DataUtils.get_idx_for_val_pos(levels, level, is_strict=False)  # todo 大气压是否要严格相等呢？
-            return dataset.variables[type_][time_idx][level_idx][lat_idx][lng_idx]
+            val = dataset.variables[type_][time_idx][level_idx][lat_idx][lng_idx]
+        else:
+            print('get_support_data... type_ is not supported')
+            return -999
 
+        # 2023/4/3 如果一个位置拿不到，尝试拿隔壁位置
+        if val is np.ma.masked:
+            for _ in range(1, search_bounds + 1):
+                x_pos = [lat_idx - _, lat_idx, lat_idx + _]
+                y_pos = [lng_idx - _, lng_idx, lng_idx + _]
+                for lat_ in x_pos:
+                    for lng_ in y_pos:
+                        try:
+                            val = dataset.variables[type_][time_idx][lat_][lng_] if data_type == 1 \
+                                else dataset.variables[type_][time_idx][level_idx][lat_][lng_]
+                        except Exception as e:
+                            pass
+                        if val is not np.ma.masked:
+                            print(
+                                '[Warning] get_sst... While searching sst pos, program reached bound {}. '
+                                'Lat: {} Lon: {} '.format(_, lan, lng))
+                            return val
+
+        if val is np.ma.masked:
+            print('[Error] get_support_data... Can not fetch sst because there is no record to find. '
+                  'Lat: {} Lon: {} '.format(lan, lng))
+            return -999
+        return val
 
 
 if __name__ == '__main__':

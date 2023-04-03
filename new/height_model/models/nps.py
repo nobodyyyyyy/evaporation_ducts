@@ -157,7 +157,7 @@ def nps_duct_height(t, RH, ts, u, P, height=-1, stable_check=False):
 
     res = h[idx]
     if res > 40:
-        res = 40
+        res = 0
     if res < 0:
         res = 0
 

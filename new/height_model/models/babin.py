@@ -22,6 +22,9 @@ def babin_duct_height(t, RH, ts, u, P, height=-1, stable_check=False):
     :return: H      波导高度    米
     """
 
+    if u == 0:
+        u = 0.1
+
     zu = 12.5  # 风速测量高度
     zt = 12.5  # 温度测量高度
     zq = 12.5  # 湿度测量高度

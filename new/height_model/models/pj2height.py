@@ -13,6 +13,9 @@ def pj2height(t, rh, to, u, p, z, stable_check=False):
     rh: 相对湿度
     '''
 
+    if u == 0:
+        u = 0.1
+
     b = -0.125 # 折射率梯度
     zo = 0.00015 # 海面粗糙长度
     beta = 5.2
