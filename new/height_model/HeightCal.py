@@ -268,9 +268,9 @@ class HeightCal:
         wb.save(filename=output_name)
 
 
-    def stations_batch_cal_and_record_all_models(self, root_dir):
+    def stations_batch_cal_and_record_all_models(self, root_dir, dest_dir='./selected_stations/'):
         _files = DataUtils.get_all_file_names(root_dir)
-
+        os.makedirs(dest_dir, exist_ok=True)
         for station_name in _files:
             if station_name not in SoundingDataProcess.SELECTED_ID:
                 # todo 加限制。
@@ -278,8 +278,7 @@ class HeightCal:
             station_path = root_dir + '/' + station_name
             station = self.station_info[station_name]
             self.single_station_batch_cal_and_record_all_models(data_dir=station_path, lan=station.lat, lng=station.lon,
-                                                                output_name='./selected_stations/' + station_name)
-
+                                                                output_name=dest_dir + station_name)
 
 
     def cal_real_height(self, data_dir, debug=False):
@@ -309,14 +308,28 @@ class HeightCal:
         return get_duct_height(_Ms, _Zs, caller='cal_real_height')
 
 
-    def batch_cal_real_height(self, data_dir):
-        # debug only
-        wb, ws, output_name = DataUtils.excel_writer_prepare(header=['时间'], output_name='real')
+    def single_station_batch_cal_real_height(self, data_dir, dest_name):
+
+        wb, ws, output_name = DataUtils.excel_writer_prepare(header=['时间'],
+                                                             output_name=dest_name)
         for file_name in os.listdir(data_dir):
             # print('{}, res = {}'.format(file_name, self.cal_real_height(data_dir + '/' + file_name, debug=False)))
             h, _ = self.cal_real_height(data_dir + '/' + file_name, debug=False)
             ws.append([file_name, h])
         wb.save(output_name)
+        print('single_station_batch_cal_real_height... Finished and saved for station {}'
+              .format(data_dir.split('/')[-1]))
+
+
+    def stations_batch_cal_real_height(self, root_dir, dest_dir='./real_heights/'):
+        os.makedirs(dest_dir, exist_ok=True)
+        _files = DataUtils.get_all_file_names(root_dir)
+        for station_name in _files:
+            if station_name not in SoundingDataProcess.SELECTED_ID:
+                # todo 加限制。
+                continue
+            station_path = root_dir + '/' + station_name
+            self.single_station_batch_cal_real_height(data_dir=station_path, dest_name=dest_dir + station_name)
 
 
     def batch_sensitivity_analyze(self, data_dir, model, year, month, day, lan, lng, sst=0, output_name=''):
@@ -494,6 +507,7 @@ if __name__ == '__main__':
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
     # c.cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed/stn_59758_2021-12-20_00UTC.npy')
-    # c.batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
-    c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
+    # c.single_station_batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
+    # c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
+    c.stations_batch_cal_real_height('../data/sounding_processed')
     pass
