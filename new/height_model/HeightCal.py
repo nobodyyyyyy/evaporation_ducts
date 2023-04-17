@@ -82,7 +82,12 @@ class HeightCal:
         time_ = TimeUtil.to_time_millis(year, month, day, 0, 0, 0)
         month_ = TimeUtil.format_month_or_day(month)
         if _type == DataUtils.FILE_TYPE_EAR5:
-            sst_file = '../data/ERA5_daily/sst/sst.{}-{}.daily.nc'.format(year, month_)
+            if year == 2021:
+                # 另类的无语数据
+                sst_file = '../data/ERA5_daily/sst/sst.2021.daily.nc'
+                _type = DataUtils.FILE_TYPE_EAR5_2021_ODD
+            else:
+                sst_file = '../data/ERA5_daily/sst/sst.{}-{}.daily.nc'.format(year, month_)
         elif _type == DataUtils.FILE_TYPE_NOAA:
             sst_file = '../data/test_2022_12_02/NOAA_daily_SST/sst.day.mean.{}.nc'.format(year)
         else:
@@ -103,7 +108,7 @@ class HeightCal:
             self.sst_cache[(year, month, lan, lng)] = sst
             return sst
 
-        if _type == DataUtils.FILE_TYPE_EAR5:
+        if _type == DataUtils.FILE_TYPE_EAR5 or _type == DataUtils.FILE_TYPE_EAR5_2021_ODD:
             sst = kelvins2degrees(sst)
         self.sst_cache[(year, month, lan, lng)] = sst
         return sst
@@ -508,6 +513,6 @@ if __name__ == '__main__':
     # print(c.cal_real_height('../data/CN/haikou.npy'))
     # c.cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed/stn_59758_2021-12-20_00UTC.npy')
     # c.single_station_batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
-    # c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
-    c.stations_batch_cal_real_height('../data/sounding_processed')
+    c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
+    # c.stations_batch_cal_real_height('../data/sounding_processed')
     pass

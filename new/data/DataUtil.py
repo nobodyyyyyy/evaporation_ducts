@@ -19,6 +19,7 @@ class DataUtils:
 
     FILE_TYPE_NOAA = 1
     FILE_TYPE_EAR5 = 2
+    FILE_TYPE_EAR5_2021_ODD = 3
 
 
     class Station:
@@ -290,6 +291,11 @@ class DataUtils:
             lon_desp = 'lon'
             lat_idx_reverse = False
             nc_timestamp = TimeUtil.time_millis_2_noaa_timestamp(time_)
+        elif file_type == DataUtils.FILE_TYPE_EAR5_2021_ODD:
+            lat_desp = 'lat'
+            lon_desp = 'lon'
+            lat_idx_reverse = True
+            nc_timestamp = TimeUtil.time_millis_2_nc_timestamp(time_)
         else:
             print('get_support_data... file type [{}] not supported.'.format(file_type))
             return -999

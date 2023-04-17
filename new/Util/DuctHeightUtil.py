@@ -91,11 +91,11 @@ def fait(zet):
 
 
 def kelvins2degrees(kelvins):
-    return MathUtil.sub(kelvins, 273.15)
+    return round(MathUtil.sub(kelvins, 273.15), 4)
 
 
 def degrees2kelvins(degrees):
-    return MathUtil.add(degrees, 273.15)
+    return round(MathUtil.add(degrees, 273.15), 4)
 
 
 def atmospheric_refractive_index_M(t, p, rh, z):
