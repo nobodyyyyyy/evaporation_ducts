@@ -286,7 +286,7 @@ class HeightCal:
                                                                 output_name=dest_dir + station_name)
 
 
-    def cal_real_height(self, data_dir, debug=False):
+    def cal_real_height(self, data_dir, interpolation=False, debug=False):
         """
         计算不同高度的折射率，画出廓线，找到拐点，得到真实的大气波导高度
         """
@@ -297,9 +297,20 @@ class HeightCal:
             dataset = np.load(data_dir, allow_pickle=True)
             self.dataset_cache[name] = dataset
         # todo 一个 data_dir 对应某一时间的文件，后续文件格式改变需要修改
+
+        processed_dataset = list(dataset)
+        if interpolation:
+            # 插值结果是不存 cache 的
+            try:
+                dataset_pol, r = self._cal_real_height_interpolation(dataset)
+                processed_dataset = dataset_pol
+            except Exception as e:
+                # 有问题，不插了
+                print('cal_real_height... Interpolation err. File: {}, err: {}'.format(data_dir, e))
+
         _Ms = []  # M 折射率
         _Zs = []  # Z 高度
-        for e in dataset:
+        for e in processed_dataset:
             t = e['TEMP']  # 气温
             eh = e['RELH']  # 相对湿度
             p = e['PRES']  # 压强
@@ -313,20 +324,61 @@ class HeightCal:
         return get_duct_height(_Ms, _Zs, caller='cal_real_height')
 
 
-    def single_station_batch_cal_real_height(self, data_dir, dest_name):
+    @staticmethod
+    def _cal_real_height_interpolation(dataset, gap=5):
+        # 在 0m ~ 第一个探测点，第一个探测点 ~ 第二个探测点之间插值
+        l = 0
+        r = 1
+        while True:
+            e0, e1 = dataset[l], dataset[r]
+            pres0, hgt0, tmp0, rel0 = e0['PRES'], e0['HGNT'], e0['TEMP'], e0['RELH']
+            pres1, hgt1, tmp1, rel1 = e1['PRES'], e1['HGNT'], e1['TEMP'], e1['RELH']
+            # 计算 1m 间隔
+            h = MathUtil.sub(hgt1, hgt0)
+            if h == 0:
+                l += 1
+                r += 1
+                continue
+            delta_p = MathUtil.sub(pres1, pres0) / h  # < 0
+            delta_t = MathUtil.sub(tmp1, tmp0) / h
+            delta_rh = MathUtil.sub(rel1, rel0) / h
+            break
+
+        ret = [e1]
+        for hgt in np.arange(hgt1 - gap, hgt0, -gap):
+            delta_h = hgt1 - hgt
+            ret.append(dict({'PRES': round(pres1 - delta_p * delta_h, 2),
+                             'HGNT': hgt,
+                             'TEMP': round(tmp1 - delta_t * delta_h, 2),
+                             'RELH': round(rel1 - delta_rh * delta_h, 2)}))
+        ret.append(e0)
+        for hgt in np.arange(hgt0 - gap, gap, -gap):
+            delta_h = hgt0 - hgt
+            relh = rel0 - delta_rh * delta_h
+            if relh < 0:
+                relh = 0.1
+            ret.append(dict({'PRES': round(pres0 - delta_p * delta_h, 2),
+                             'HGNT': hgt,
+                             'TEMP': round(tmp0 - delta_t * delta_h, 2),
+                             'RELH': round(relh, 2)}))
+        ret.reverse()
+        return ret, r
+
+
+    def single_station_batch_cal_real_height(self, data_dir, dest_name, interpolation=False):
 
         wb, ws, output_name = DataUtils.excel_writer_prepare(header=['时间'],
                                                              output_name=dest_name)
         for file_name in os.listdir(data_dir):
             # print('{}, res = {}'.format(file_name, self.cal_real_height(data_dir + '/' + file_name, debug=False)))
-            h, _ = self.cal_real_height(data_dir + '/' + file_name, debug=False)
+            h, _ = self.cal_real_height(data_dir + '/' + file_name, debug=False, interpolation=interpolation)
             ws.append([file_name, h])
         wb.save(output_name)
         print('single_station_batch_cal_real_height... Finished and saved for station {}'
               .format(data_dir.split('/')[-1]))
 
 
-    def stations_batch_cal_real_height(self, root_dir, dest_dir='./real_heights/'):
+    def stations_batch_cal_real_height(self, root_dir, dest_dir='./real_heights/', interpolation=False):
         os.makedirs(dest_dir, exist_ok=True)
         _files = DataUtils.get_all_file_names(root_dir)
         for station_name in _files:
@@ -334,7 +386,8 @@ class HeightCal:
                 # todo 加限制。
                 continue
             station_path = root_dir + '/' + station_name
-            self.single_station_batch_cal_real_height(data_dir=station_path, dest_name=dest_dir + station_name)
+            self.single_station_batch_cal_real_height(data_dir=station_path, dest_name=dest_dir + station_name,
+                                                      interpolation=interpolation)
 
 
     def batch_sensitivity_analyze(self, data_dir, model, year, month, day, lan, lng, sst=0, output_name=''):
@@ -513,6 +566,6 @@ if __name__ == '__main__':
     # print(c.cal_real_height('../data/CN/haikou.npy'))
     # c.cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed/stn_59758_2021-12-20_00UTC.npy')
     # c.single_station_batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
-    c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
-    # c.stations_batch_cal_real_height('../data/sounding_processed')
+    # c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
+    c.stations_batch_cal_real_height('../data/sounding_processed_hgt', interpolation=True)
     pass

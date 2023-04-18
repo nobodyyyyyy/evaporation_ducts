@@ -147,7 +147,7 @@ def get_duct_height(m_list, z_list, caller='', debug=False):
         pre = sub
     if debug:
         print('{}... cannot get duct height'.format(caller))
-    return -1, -1
+    return 0, -1
 
 
 def cal_height_with_p_and_t(p, t, method='hypsometric'):

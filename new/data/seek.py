@@ -5,7 +5,7 @@ from new.Util.TimeUtil import TimeUtil
 
 if __name__ == '__main__':
 
-    file = 'F:\\dog\\evaporation_ducts\\new\data\\test_2022_12_02\\NOAA_daily_SST\\sst.day.mean.2020.nc'
+    file = 'G:\\NCEP\\hgt\\hgt.2020.daily.nc'
     dataset = nc.Dataset(file)
     all_vars = dataset.variables.keys()
 
