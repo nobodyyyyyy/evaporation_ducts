@@ -45,6 +45,7 @@ import math
 
 # p气压 t温度，shidu相对湿度，z高度,计算得到某一高度的大气折射率
 def zheshelv(t, p, shidu, z):
+    # atmospheric_refractive_index_M
     # e为饱和水汽压
     e = 6.112 * exp(17.67 * t / (t + 243.5))
     e = e * shidu
@@ -163,7 +164,7 @@ def Interplot(data, start=50, end=3000, nums=296, kind="cubic"):
     return data
 
 
-# 函数输出电磁传播损耗模块参数m:负折射指数, zt:陷获层厚度, c1:混合层斜率, zb:陷获层底厚度, q:蒸发波导厚度
+# 函数输出电磁传播损耗模块参数  m:负折射指数, zt:陷获层厚度, c1:混合层斜率, zb:陷获层底厚度, q:蒸发波导厚度
 def generate_data_diancichuanbo(data, selected="n"):
     engine = matlab.engine.start_matlab()
     if selected == "n":
