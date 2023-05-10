@@ -26,12 +26,10 @@ class HeightCal:
 
     SST_NOT_FOUND = -999
 
-
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-
 
     def __init__(self, txt_root_file):
         if not HeightCal._exist:
@@ -47,7 +45,6 @@ class HeightCal:
             self.sst_cache = {}
             self.station_info = {}  # {stn_12345: Station instance}
             self.init_station_infos(txt_root_file)
-
 
     def init_station_infos(self, txt_root_file, filtered=True):
         """
@@ -74,8 +71,6 @@ class HeightCal:
                                                                     _lon=lng, _location=location,
                                                                     _heights=[])
 
-
-
     def get_sst(self, year: int, month: int, day: int, lan: float, lng: float, _type):
         if (year, month, lan, lng) in self.sst_cache.keys():
             return self.sst_cache[(year, month, lan, lng)]
@@ -96,7 +91,7 @@ class HeightCal:
 
         try:
             sst = DataUtils.get_support_data(year, month_, 'sst', lan, lng, time_,
-                                                     file_name=sst_file, file_type=_type)
+                                             file_name=sst_file, file_type=_type)
         except FileNotFoundError as e:
             print('get_sst... no such file to read sst info. Err info: {}'.format(e))
             return HeightCal.SST_NOT_FOUND
@@ -113,7 +108,6 @@ class HeightCal:
         self.sst_cache[(year, month, lan, lng)] = sst
         return sst
 
-
     def get_data(self, data_dir, year, month, day, lan, lng, sst=-999, sst_type=DataUtils.FILE_TYPE_EAR5):
         if sst == HeightCal.SST_NOT_FOUND:
             sst = self.get_sst(year, month, day, lan, lng, sst_type)
@@ -124,7 +118,6 @@ class HeightCal:
             dataset = np.load(data_dir, allow_pickle=True)
             self.dataset_cache[name] = dataset
         return dataset, sst
-
 
     def cal_height(self, data_dir, model, year, month, day, lan, lng, sst=-999, nrows=1):
         dataset, sst = self.get_data(data_dir, year, month, day, lan, lng, sst)
@@ -146,7 +139,6 @@ class HeightCal:
             res.append(self.cal_height_with_data(e, sst, func))
             _ += 1
         return res
-
 
     def cal_height_with_data(self, e, sst, model, stable_check=False):
         """
@@ -182,7 +174,6 @@ class HeightCal:
             return res, is_stable
         return res
 
-
     def cal_and_record_all_models(self, data_dir, year, month, day, lan, lng, output_name='',
                                   nrows=1, sst_type=DataUtils.FILE_TYPE_EAR5):
         wb = Workbook()
@@ -209,7 +200,6 @@ class HeightCal:
                 line.append(res[j][i])
             ws.append(line)
         wb.save(filename=output_name)
-
 
     def single_station_batch_cal_and_record_all_models(self, data_dir, lan, lng, output_name='', stable_check=False):
         """
@@ -272,7 +262,6 @@ class HeightCal:
             ws.append(l)
         wb.save(filename=output_name)
 
-
     def stations_batch_cal_and_record_all_models(self, root_dir, dest_dir='./selected_stations/'):
         _files = DataUtils.get_all_file_names(root_dir)
         os.makedirs(dest_dir, exist_ok=True)
@@ -284,7 +273,6 @@ class HeightCal:
             station = self.station_info[station_name]
             self.single_station_batch_cal_and_record_all_models(data_dir=station_path, lan=station.lat, lng=station.lon,
                                                                 output_name=dest_dir + station_name)
-
 
     def cal_real_height(self, data_dir, interpolation=False, debug=False):
         """
@@ -322,7 +310,6 @@ class HeightCal:
             _Ms.append(atmospheric_refractive_index_M(t, p, eh, h))
             _Zs.append(h)
         return get_duct_height(_Ms, _Zs, caller='cal_real_height')
-
 
     @staticmethod
     def _cal_real_height_interpolation(dataset, gap=5):
@@ -364,7 +351,6 @@ class HeightCal:
         ret.reverse()
         return ret, r
 
-
     def single_station_batch_cal_real_height(self, data_dir, dest_name, interpolation=False):
 
         wb, ws, output_name = DataUtils.excel_writer_prepare(header=['时间'],
@@ -377,7 +363,6 @@ class HeightCal:
         print('single_station_batch_cal_real_height... Finished and saved for station {}'
               .format(data_dir.split('/')[-1]))
 
-
     def stations_batch_cal_real_height(self, root_dir, dest_dir='./real_heights/', interpolation=False):
         os.makedirs(dest_dir, exist_ok=True)
         _files = DataUtils.get_all_file_names(root_dir)
@@ -388,7 +373,6 @@ class HeightCal:
             station_path = root_dir + '/' + station_name
             self.single_station_batch_cal_real_height(data_dir=station_path, dest_name=dest_dir + station_name,
                                                       interpolation=interpolation)
-
 
     def batch_sensitivity_analyze(self, data_dir, model, year, month, day, lan, lng, sst=0, output_name=''):
         """
@@ -408,7 +392,6 @@ class HeightCal:
             print('sensitivity_analyze... data incomplete: [{}, {}, {}, {}, {}, {}]'.format(t, eh, sst, u, p, h))
             return
         return self.single_sensitivity_analyze(t, eh, u, p, h, sst, model, output_name)
-
 
     def single_sensitivity_analyze(self, t, eh, u, p, h, sst, model, output_name='',
                                    disturbance_type=DISTUR_COE,
@@ -493,7 +476,6 @@ class HeightCal:
 
         return True
 
-
     @staticmethod
     def random_disturbance_prepare(t, eh, sst, u, p, h, u_gap=2, t_gap=2, eh_gap=3, times=10):
         """
@@ -515,7 +497,6 @@ class HeightCal:
                 continue
             ret.append([t_val, eh_val, sst, u_val, p, h])
         return ret
-
 
     @staticmethod
     def disturbance_prepare(t, eh, sst, u, p, h, lowers=None, uppers=None, gaps=None, round_first=False):
@@ -560,12 +541,10 @@ if __name__ == '__main__':
     # print(c.single_sensitivity_analyze(24.1,	90,		4.1,	1008.4,	65, 23.58, 'all'))
     # print(c.single_sensitivity_analyze(25.7, 85, 3,  1000.1, 65, 29.19, 'all'))
     # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=1
-    # c.batch_cal_and_record_all_models('../data/test_2022_12_02/sounding_data/stn_59758_processed', 20.000, 110.250,
-    #                                   output_name='haikou_all_stable_noaa3.xlsx', stable_check=True)
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
     # c.cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed/stn_59758_2021-12-20_00UTC.npy')
     # c.single_station_batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
-    # c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
-    c.stations_batch_cal_real_height('../data/sounding_processed_hgt', interpolation=True)
+    c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
+    # c.stations_batch_cal_real_height('../data/sounding_processed_hgt', interpolation=True)
     pass

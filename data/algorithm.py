@@ -946,3 +946,7 @@ def getTrap(xResult, bResult):
         return bmTrap(bResult[1][0], bResult[2][0], bResult[3][0])
     else:
         return None, None
+
+
+if __name__ == '__main__':
+    dianciLoss(1,1)
