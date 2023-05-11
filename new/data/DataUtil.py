@@ -9,6 +9,7 @@ import netCDF4 as nc
 from numpy import ndarray
 from openpyxl import Workbook
 
+from new.Util import DuctHeightUtil
 from new.Util.TimeUtil import TimeUtil
 
 
@@ -377,6 +378,24 @@ class DataUtils:
                   'Lat: {} Lon: {} '.format(lan, lng))
             return -999
         return val
+
+    @staticmethod
+    def generate_ref_and_h(data, axis=[1, 2, 3, 0]):
+        """
+        输入data，生成其他算法需要的廓线和高度数据
+        :param data:
+        :param axis: axis = [Temp, Press, Hum, H]
+        :return:
+        """
+        h = np.zeros((data.shape[0], 1))
+        ref = np.zeros((data.shape[0], 1))
+        for i in range(0, data.shape[0]):
+            h[i][0] = data[i][axis[3]]
+            ref[i][0] = DuctHeightUtil.atmospheric_refractive_index_M(data[i][axis[0]],
+                                                                      data[i][axis[1]],
+                                                                      data[i][axis[2]],
+                                                                      data[i][axis[3]])
+        return ref, h
 
 
 if __name__ == '__main__':
