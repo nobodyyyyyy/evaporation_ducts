@@ -1,11 +1,11 @@
    
    
-   subroutine MM(c1)
+   subroutine MM(c1)  计算蒸发波导的高度
         use pemod
 		implicit none
 
 		!m:������ָ��, zt:�ݻ����, c1:��ϲ�б��, zb:�ݻ��׺��, q:�����������
-		real:: m,zt,c1,zb,height,MMM,M1
+		real:: m,zt,c1,zb,hegeight,MMM,M1
 		integer i
  !       write(*,*)m,zt,c1,zb,q
 
@@ -19,7 +19,7 @@
 		  else
 		     MMM=330+0.12513*(ht(i)-c1*log(ht(i)./1.5*10000));!米为单位
 		  end if
-		     ref(i)=MMM
+		     ref(i)=MMM   求 M
 	   end do      
 
    end subroutine

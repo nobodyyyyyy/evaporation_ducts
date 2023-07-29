@@ -543,8 +543,8 @@ if __name__ == '__main__':
     # c.cal_and_record_all_models('../data/CN/haikou.npy', 2021, 11, 29, 20.000, 110.250, 'haikou',nrows=1
     # c.cal_and_record_all_models('../data/CN/shantou.npy', 2021, 11, 29, 23.350, 116.670, 'shantou')
     # print(c.cal_real_height('../data/CN/haikou.npy'))
-    # c.cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed/stn_59758_2021-12-20_00UTC.npy')
+    # c.cal_real_height('../data/sounding_processed_hgt/stn_54511/stn_54511_2020-01-01_00UTC.npy')
     # c.single_station_batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
-    c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
-    # c.stations_batch_cal_real_height('../data/sounding_processed_hgt', interpolation=True)
+    # c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
+    c.stations_batch_cal_real_height('../data/sounding_processed_hgt')
     pass

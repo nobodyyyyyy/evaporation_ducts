@@ -14,11 +14,9 @@ class MathUtil:
             return []
         return ret
 
-
     @staticmethod
     def add(left, right):
         return float(Decimal(str(left)) + Decimal(str(right)))
-
 
     @staticmethod
     def sub(left, right):

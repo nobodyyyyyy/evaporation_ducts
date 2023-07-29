@@ -14,14 +14,12 @@ from new.Util.TimeUtil import TimeUtil
 
 
 class DataUtils:
-
     _instance = None
     _exist = False
 
     FILE_TYPE_NOAA = 1
     FILE_TYPE_EAR5 = 2
     FILE_TYPE_EAR5_2021_ODD = 3
-
 
     class Station:
 
@@ -44,19 +42,16 @@ class DataUtils:
         def __repr__(self):
             return f'[{self.id}] {self.location}. lat: {self.lat}, lon: {self.lon}. heights: {self.heights}\n'
 
-
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-
 
     def __init__(self):
         if not DataUtils._exist:
             DataUtils._exist = True
             self.nc_dataset_cache = {}
             self.primary_dataset_cache = {}
-
 
     @staticmethod
     def get_all_file_names(path, recursive=False, filter_end=None):
@@ -79,11 +74,9 @@ class DataUtils:
                     _ret.append(_name)
         return _ret
 
-
     @staticmethod
     def get_file_name(dir_):
         return dir_.split('/')[-1]
-
 
     @staticmethod
     def excel_writer_prepare(header, output_name='', title_name='result'):
@@ -99,7 +92,6 @@ class DataUtils:
         if header is not None:
             ws.append(header)
         return wb, ws, output_name
-
 
     @staticmethod
     def get_heading_idx_for_sounding_txt(header):
@@ -121,7 +113,6 @@ class DataUtils:
         col_index.append(_r)
         return col_index
 
-
     @staticmethod
     def get_lat_and_lon_4_stn_data(_str):
         """
@@ -131,11 +122,9 @@ class DataUtils:
         lng = float(re.findall('(?<=Longitude:).*?(?=</I>)', _str)[0])
         return lat, lng
 
-
     @staticmethod
     def get_location_4_stn_data(_str):
         return re.findall('(?<=<H3>).*?(?=</H3>)', _str)[0]
-
 
     @staticmethod
     def txt_file_to_npy(dir_, dest_, batch=False):
@@ -185,7 +174,6 @@ class DataUtils:
         except:
             print('txt_file_to_npy Complete.')
 
-
     @staticmethod
     def aem_data_to_npy(dir_, dest_):
         warnings.warn("Deprecated method", DeprecationWarning)
@@ -221,9 +209,8 @@ class DataUtils:
         except Exception as e:
             print(e)
 
-
     @staticmethod
-    def get_idx_for_val_pos(arr:ndarray, val, is_reverse=False, is_strict=False):
+    def get_idx_for_val_pos(arr: ndarray, val, is_reverse=False, is_strict=False):
         """
         在 nc 文件中的 lan 或 lng 中找到 val 值对应的下标 idx
         nc 文件的 time 也是类似的调用该方法
@@ -240,9 +227,8 @@ class DataUtils:
         else:
             return DataUtils.inner_get_idx(arr, val, is_strict)
 
-
     @staticmethod
-    def inner_get_idx(arr:ndarray, val, is_strict=False):
+    def inner_get_idx(arr: ndarray, val, is_strict=False):
         n = len(arr)
         idx = bisect.bisect(arr, val)
         if arr[idx] == val:
@@ -262,9 +248,8 @@ class DataUtils:
             else:
                 return idx
 
-
     @staticmethod
-    def get_support_data(year:int, month:int, type_:str, lan:float, lng:float, time_, level=-1,
+    def get_support_data(year: int, month: int, type_: str, lan: float, lng: float, time_, level=-1,
                          file_name='', file_type=FILE_TYPE_EAR5, search_bounds=5):
         """
         获取辅助数据，主要是 nc 文件内容
@@ -380,13 +365,15 @@ class DataUtils:
         return val
 
     @staticmethod
-    def generate_ref_and_h(data, axis=[1, 2, 3, 0]):
+    def generate_ref_and_h(data, axis=None):
         """
         输入data，生成其他算法需要的廓线和高度数据
         :param data:
         :param axis: axis = [Temp, Press, Hum, H]
         :return:
         """
+        if axis is None:
+            axis = [0, 1, 2, 3]
         h = np.zeros((data.shape[0], 1))
         ref = np.zeros((data.shape[0], 1))
         for i in range(0, data.shape[0]):

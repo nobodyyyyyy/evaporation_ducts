@@ -1,19 +1,19 @@
-subroutine SPEE(aa,frq,height,xxx)
+subroutine SPEE(aa,frq,height,xxx 输出)
 
 	use pemod
     !pemod �����߷���
 	implicit integer(kind=4) (i-n)
 	implicit real(kind=8) (a-h, o-z)
-	real(kind=4)::aa,dd,frq,height
+	real(kind=4)::aa 蒸发波导高度 ,dd  ,frq 雷达频率 , height 天线高度
 	real::xxx(1024,200)
 
 
 	! �״�ϵͳ�����ʹ�������������
 	! ����Gerstoft et al. [2003, Radio Sci.] �����е�����
 	rmax = 100.
-	rmax = rmax * 1.d3
-	nrout = 200
-	dr = rmax/dble(nrout)
+	rmax = rmax * 1.d3 水平距离 100km
+	nrout = 200 水平距离 100km 200份
+	dr = rmax/dble(nrout) 间隔距离
    ! write(*,*)aa,dd,ee
 
 	! �״�ϵͳ������Ĭ�ϼ�����ʽΪˮƽ����
@@ -44,27 +44,27 @@ subroutine SPEE(aa,frq,height,xxx)
 	if( allocated( filt ) ) deallocate( filt, stat=ierror )
 	allocate( filt(0:no4), stat=ierror )
 	if( ierror .ne. 0 ) stop 
-	filt = 0.d0
+	filt = 0.d0  电磁波不断往高度进行计算，200m就不算了，截止之后可能不好数值，用这个截断
 
 	filt = .5 + .5 * dcos( (/(i, i=0, no4)/) * cn75 ) !�˲�����
 
 	call allarray
 
 	do i = 0, n
-		ht(i) = dble(i) * delz 
+		ht(i) = dble(i) * delz   存高度
 	end do
 
-     call MM(aa)  !���������ȷ��������
+     call MM(aa)  !���������ȷ�������� 公式2里的 m2-1
 
 	! Initialize starter field
 	call xyinit(ROUT)	! rout��¼�������
 	call fft(u)			! transform to z-space
-	pobs(:,0) = u
+	pobs(:,0) = u    公式2 U(x0,p)
 
 	call phase1
 	call phase2
 
-    free=20 * log10(2*fko)
+    free=20 * log10(2*fko)  自由空间传播损耗
 
 	do i = 1, nrout
 		call pestep( rout )
@@ -91,7 +91,7 @@ subroutine allarray
 	if( allocated( ht ) ) deallocate( ht, stat=ierror )
 	allocate( ht(0:n), stat=ierror )
 	if( ierror .ne. 0 ) return 
-	ht = 0.d0
+	ht = 0.d0  n 的矩阵
 
 	if( allocated( ref ) ) deallocate( ref, stat=ierror )
 	allocate( ref(0:n), stat=ierror )
@@ -217,8 +217,8 @@ subroutine fft( udum )
 	dimension x(0:maxpts), y(0:maxpts)
 
 	do i = 0, n
-		x(i) = real( udum(i) )
-		y(i) = imag( udum(i) )
+		x(i) = real( udum(i) )  实部
+		y(i) = imag( udum(i) )  虚部
 	end do
 
 	call sinfft( ln, x )
@@ -241,10 +241,10 @@ subroutine getfftsz
 
 	! Ϊ�˼��㷽�㣬����ֱ�Ӷ�����ر�����ֵ����ʹ֮����Nyquist����
 
-	delz = 1.                
+	delz = 1. 1m还是1km
 	ln = 10
 	n = 2**ln
-	zmax = delz * dble(n)           
+	zmax = delz * dble(n)          最大高度最高能算到多少
 	return
 
 end
@@ -316,7 +316,7 @@ subroutine phase1
 	end do
 
 	! Filter the upper 1/4 of the propagator arrays.
-	frsp(n34:n) = filt(0:no4) * frsp(n34:n)
+	frsp(n34:n) = filt(0:no4) * frsp(n34:n)  对应
 
 !	do i = 0, n
 !		write(30,*) dble(i) * delp, frsp(i)

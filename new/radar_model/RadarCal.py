@@ -1,9 +1,17 @@
 import math
+import re
 
 import numpy as np
 
+from new.Util import DuctHeightUtil
+from new.Util.DrawUtil import DrawUtil
+from new.Util.MathUtil import MathUtil
 from new.data.DataUtil import DataUtils
-from data import SP
+# from data import SP
+from new.height_model.HeightCal import HeightCal
+from new.radar_model import SP
+from new.radar_model import newspe
+# from data import SPEE
 
 
 class RadarCal:
@@ -202,35 +210,74 @@ class RadarCal:
                     break
         return pre_data
 
-    def get_l_single(self, data_dir, debug=True):
+    def get_l_single(self, data_dir, radar_feq, antenna_height):
         """
         拿 L_{single}
+        :param data_dir: npy 探空地址
+        :param antenna_height: 天线高度
+        :param radar_feq 雷达频率
         """
-        name = DataUtils.get_file_name(data_dir)
-        if name in self.dataset_cache.keys():
-            dataset = self.dataset_cache[name]
-        else:
-            dataset = np.load(data_dir, allow_pickle=True)
-            self.dataset_cache[name] = dataset
-        # todo 一个 data_dir 对应某一时间的文件，后续文件格式改变需要修改
-        data_list = []
-        for e in dataset:
-            t = e['TEMP']  # 气温
-            eh = e['RELH']  # 相对湿度
-            p = e['PRES']  # 压强
-            h = e['HGNT']  # 测量高度
-            if t is None or eh is None or h is None or p is None:
-                if debug:
-                    print('cal_real_height... data incomplete: [{}, {}, {}, {}]'.format(t, eh, p, h))
-                continue
-            data_list.append([t, p, eh, h])
-
-        ref, h = DataUtils.generate_ref_and_h(data_list)
-        pre_data = RadarCal.radar_data_pre_generate(ref, h)
-        loss = SP.spe(pre_data[0][0], pre_data[1][0], pre_data[2][0], pre_data[3][0], pre_data[4][0])
-        loss = np.array(loss)
+        # name = DataUtils.get_file_name(data_dir)
+        # if name in self.dataset_cache.keys():
+        #     dataset = self.dataset_cache[name]
+        # else:
+        #     dataset = np.load(data_dir, allow_pickle=True)
+        #     self.dataset_cache[name] = dataset
+        # # todo 一个 data_dir 对应某一时间的文件，后续文件格式改变需要修改
+        # data_list = []
+        # for e in dataset:
+        #     t = e['TEMP']  # 气温
+        #     eh = e['RELH']  # 相对湿度
+        #     p = e['PRES']  # 压强
+        #     h = e['HGNT']  # 测量高度
+        #     if t is None or eh is None or h is None or p is None:
+        #         if debug:
+        #             print('get_l_single... data incomplete: [{}, {}, {}, {}]'.format(t, eh, p, h))
+        #         continue
+        #     data_list.append([t, p, eh, h])
+        # data_list = np.array(data_list)
+        # # data_list = np.load('../../Algorithm/snd.npy')
+        # # data_list = data_list[:, [3, 0, 2, 1]]
+        #
+        # ref, h = DataUtils.generate_ref_and_h(data_list)
+        #
+        # pre_data = RadarCal.radar_data_pre_generate(ref, h)
+        # pre_data[0][0], pre_data[1][0], pre_data[2][0], pre_data[3][0], pre_data[4][0] = \
+        #     MathUtil.round(pre_data[0][0], pre_data[1][0], pre_data[2][0], pre_data[3][0], pre_data[4][0])
+        # # 检测是否有波导发生
+        # valid_f = False
+        # for _ in range(5):
+        #     if pre_data[_][0] != 0:
+        #         valid_f = True
+        # if not valid_f:
+        #     print('get_l_single... Invalid. No ref and h found for input.')
+        # else:
+        #     print('get_l_single... Valid. {} {} {} {} {}'.format(pre_data[0][0], pre_data[1][0],
+        #                                                          pre_data[2][0], pre_data[3][0], pre_data[4][0]))
+        # 无论如何都计算并画图
+        # m: 负折射指数, zt: 陷获层厚度, c1: 混合层斜率, zb: 陷获层底厚度, q: 蒸发波导厚度
+        # loss = SP.spe(pre_data[0][0], pre_data[1][0], pre_data[2][0], pre_data[3][0], pre_data[4][0])
+        # loss = SP.spe(0.137, 100.0, -0.043, 300, 0)
+        # pre_data[0][0], pre_data[1][0], pre_data[2][0], pre_data[3][0], pre_data[4][0] = -53, 20, 0, 0.0, 70
+        # loss = SP.spe(pre_data[0][0], pre_data[1][0], pre_data[2][0], pre_data[3][0], pre_data[4][0])
+        # loss = np.array(loss)
+        # # loss = np.flip(loss, axis=1)
+        # # loss = np.flip(loss, axis=0)
+        # # loss = loss.swapaxes(0, 1)
+        inst = HeightCal('../data/sounding')  # 单例
+        height, _ = inst.cal_real_height(data_dir)
+        if height == 0:
+            print('[Warning] get_l_single... Duct height is 0')
+        loss = newspe.spee(height, radar_feq, antenna_height)
+        # loss = newspe.spee(40, 9400, 8)
         return loss
 
 
 if __name__ == '__main__':
-    RadarCal.get_l_single()
+    rc = RadarCal()
+    f = '../data/sounding_processed_hgt/stn_54511/stn_54511_2021-12-12_00UTC.npy'
+    # station = f.split('.')[-2].split('_')[-3]
+    # date = f.split('.')[-2].split('_')[-2]
+    loss, _ = rc.get_l_single(f, 9400, 8)
+    # DrawUtil.draw_l_single_heatmap(loss, title='{}-{}-{}'.format(station, date, _))
+    DrawUtil.draw_l_single_heatmap(loss, title='{}'.format(_))
