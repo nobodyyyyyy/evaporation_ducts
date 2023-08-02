@@ -276,8 +276,11 @@ class RadarCal:
 if __name__ == '__main__':
     rc = RadarCal()
     f = '../data/sounding_processed_hgt/stn_54511/stn_54511_2021-12-12_00UTC.npy'
-    # station = f.split('.')[-2].split('_')[-3]
-    # date = f.split('.')[-2].split('_')[-2]
-    loss, _ = rc.get_l_single(f, 9400, 8)
-    # DrawUtil.draw_l_single_heatmap(loss, title='{}-{}-{}'.format(station, date, _))
-    DrawUtil.draw_l_single_heatmap(loss, title='{}'.format(_))
+    # # station = f.split('.')[-2].split('_')[-3]
+    # # date = f.split('.')[-2].split('_')[-2]
+    # loss, _ = rc.get_l_single(f, 9400, 8)
+    # # DrawUtil.draw_l_single_heatmap(loss, title='{}-{}-{}'.format(station, date, _))
+    # DrawUtil.draw_l_single_heatmap(loss, title='{}'.format(_))
+
+    loss = newspe.spee(80, 9400, 8)
+    DrawUtil.draw_l_single_heatmap(loss, title='80m')

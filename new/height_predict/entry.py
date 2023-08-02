@@ -3,6 +3,7 @@ import pickle
 
 import numpy as np
 import torch
+import torch.utils.data as Data
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
@@ -32,6 +33,8 @@ class PredictModel:
     ML = [MODEL_SVR, MODEL_KNN, MODEL_DECISION_TREE, MODEL_RF, MODEL_GBRT]
     DL = [MODEL_LSTM]
 
+    DATA_SPLIT_CONDITION = {MODEL_LSTM: DataSet.MODEL_LSTM}
+
     def __init__(self, station_num=1, source='../height_model/merged/stn_54511.xlsx',
                  start_date='1/1/2020', end_date='12/31/2021'):
         self.ha = HA()
@@ -42,7 +45,7 @@ class PredictModel:
         self.gbrt = GradientBoostingRegressor()
 
         self.station_num = station_num
-        self.lstm = LSTM(input_size=station_num, hidden_size=8, num_layers=1, output_size=1)
+        self.lstm = LSTM(input_size=6, hidden_size=8, num_layers=1, output_size=1)
         self.entries = {self.MODEL_LSTM: self.lstm,
                         self.MODEL_SVR: self.svr,
                         self.MODEL_KNN: self.knn,
@@ -113,8 +116,8 @@ class PredictModel:
             pred = model.predict(x_val)
 
             reals = self.dataset.inverse_transform(y_val)
-            _predicts = self.dataset.inverse_transform(pred)
-            mae, rmse, mape = Eval.get_matrix(_predicts, reals)
+            predicts = self.dataset.inverse_transform(pred)
+            mae, rmse, mape = Eval.get_matrix(predicts, reals)
         if single_step:
             print('inner_train_ml... Model: {} step {} results: mae: {:.4f}, rmse: {:.4f}, mape: {:.4f}'.format(
                 model_name, step, mae, rmse, mape))
@@ -123,62 +126,75 @@ class PredictModel:
                 model_name, step, mae, rmse, mape))
         return mae, rmse, mape, predicts
 
-    def inner_train_dl(self, model: LSTM, model_name: str, epoch=1000,
-                       input_window=6, output_window=1, train_ratio=0.9):
-        loss_fn = nn.MSELoss()
+    def inner_train_lstm(self, model: LSTM, model_name: str, epoch=1000,
+                         input_window=6, output_window=1, train_ratio=0.9):
+        split_condition = self.DATA_SPLIT_CONDITION[self.MODEL_LSTM]
         x_train, y_train, x_val, y_val = self.dataset.split(self.dataset.data, train_ratio, 1 - train_ratio,
                                                             input_window=input_window, output_window=output_window,
-                                                            machine_learning=False)
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+                                                            machine_learning=False, specify_model=split_condition)
+
+        train_data = Data.TensorDataset(x_train, y_train)
+        test_data = Data.TensorDataset(x_val, y_val)
+        train_loader = Data.DataLoader(dataset=train_data, batch_size=4, shuffle=False)
+        test_loader = Data.DataLoader(dataset=test_data, batch_size=4, shuffle=False)
+
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+        loss_func = nn.MSELoss()
         min_val_loss = math.inf
-        cnt = 0
+        train_loss_all = []
         model.train()
         for e in range(epoch):
-            out = model(x_train)
-            loss = loss_fn(out, y_train)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            train_loss = 0
+            train_num = 0
+            for step, (b_x, b_y) in enumerate(train_loader):
+                output = model(b_x)
+                loss = loss_func(output, b_y)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                train_loss += loss.item() * b_x.size(0)
+                train_num += b_x.size(0)
 
-            if loss < min_val_loss:
+            # print(f'Epoch{epoch + 1}/{epoch}: Loss:{train_loss / train_num}')
+            los = train_loss / train_num
+            print('Epoch: {}. loss: {}'.format(e, round(los, 4)))
+            # train_loss_all.append(los)
+            if los < min_val_loss:
                 cnt = 0
-                min_val_loss = loss
-                print('Better model saving. Epoch: {}. loss: {}'.format(e, loss))
+                min_val_loss = los
+                print('Better model saving. Epoch: {}. loss: {}'.format(e, los))
                 torch.save(model.state_dict(), '{}/{}.pth'.format(mod_dir, model_name))
             else:
                 cnt += 1
-                if cnt == 20:
+                if cnt == 100:
                     print('>>>>>> Early stopping at epoch {}'.format(e))
                     break
 
         model.load_state_dict(torch.load('{}/{}.pth'.format(mod_dir, model_name),
                                          map_location=lambda storage, loc: storage))
-        lstm = model.eval()
+        model = model.eval()
         with torch.no_grad():
             reals = []
             predicts = []
-            start_idx = len(x_train)
-            all_x_data = torch.cat((x_train, x_val))
-            all_y_data = torch.cat((y_train, y_val))
-            for _ in range(len(x_val) - 1, len(x_val)):
-                out = lstm(all_x_data[:start_idx + _])
-                true = all_y_data[:start_idx + _]
-                reals.append(true)
-                predicts.append(out)
+            for step, (b_x, b_y) in enumerate(test_loader):
+                output = model(b_x)
+                reals.append(b_y)
+                output = output.squeeze(-1)
+                predicts.append(output)
 
-            reals = np.concatenate(reals)
-            predicts = np.concatenate(predicts)
+            _reals = torch.stack(reals[:-1]).reshape(-1)
+            _predicts = torch.stack(predicts[:-1]).reshape(-1)
 
-            # 消除多余维度
-            reals = np.squeeze(reals)
-            predicts = np.squeeze(predicts)
+            _reals = torch.concat([_reals, reals[-1]])
+            _predicts = torch.concat([_predicts, predicts[-1]])
 
-            reals = self.dataset.inverse_transform(reals)
-            predicts = self.dataset.inverse_transform(predicts)
-            mae, rmse, mape = Eval.get_matrix(predicts, reals)
+            _reals = self.dataset.inverse_transform(_reals)
+            _predicts = self.dataset.inverse_transform(_predicts)
+
+            mae, rmse, mape = Eval.get_matrix(_predicts, _reals)
             print('inner_train_dl... Model: {} results:'.format(model_name))
             print('mae: {:.4f}, rmse: {:.4f}, mape: {:.4f}'.format(mae, rmse, mape))
-            return mae, rmse, mape, predicts[:len(y_val)]
+            return mae, rmse, mape, _predicts[:len(y_val)]
 
     def predict(self, select_model=MODEL_LSTM, epoch=50, input_window=6, output_window=1, with_result=False,
                 train_ratio=0.9, step=1, single_step=False):
@@ -186,10 +202,10 @@ class PredictModel:
             print('predict... {} not supported'.format(select_model))
         mae = rmse = mape = -1
         predicts = None
-        if select_model in self.DL:
-            mae, rmse, mape, predicts = self.inner_train_dl(self.entries[select_model], select_model, epoch=epoch,
-                                                            input_window=input_window, output_window=output_window,
-                                                            train_ratio=train_ratio)
+        if select_model == self.MODEL_LSTM:
+            mae, rmse, mape, predicts = self.inner_train_lstm(self.entries[select_model], select_model, epoch=epoch,
+                                                              input_window=input_window, output_window=output_window,
+                                                              train_ratio=train_ratio)
         elif select_model in self.ML:
             mae, rmse, mape, predicts = self.inner_train_ml(self.entries[select_model], select_model,
                                                             input_window=input_window, train_ratio=train_ratio,
@@ -238,7 +254,8 @@ class PredictModel:
         """
         output_window = 1
         pm = PredictModel(source=source)
-        features = [DataSet.FEATURE_NPS, DataSet.FEATURE_BABIN, DataSet.FEATURE_LIULI, DataSet.FEATURE_PJ]
+        # features = [DataSet.FEATURE_NPS, DataSet.FEATURE_BABIN, DataSet.FEATURE_LIULI, DataSet.FEATURE_PJ]
+        features = [DataSet.FEATURE_NPS]
         models = PredictModel.ML + PredictModel.DL
         with open(log_dir, 'a+') as f:
             f.truncate(0)
@@ -259,7 +276,8 @@ class PredictModel:
                 for model in models:
                     mae, rmse, mape, results = pm.predict(select_model=model, epoch=epoch,
                                                           input_window=input_window, output_window=output_window,
-                                                          with_result=True, train_ratio=train_ratio)
+                                                          with_result=True, train_ratio=train_ratio,
+                                                          single_step=True)
                     results_list.append(results[:, 0])
                     f.write('{}>>>>>\n'.format(model))
                     f.write(f'MAE: {mae} , RMSE: {rmse} , MAPE : {mape}\n')
@@ -272,7 +290,7 @@ class PredictModel:
 
 if __name__ == '__main__':
     pm = PredictModel()
-    # pm.predict(select_model=PredictModel.MODEL_LSTM, epoch=1000)
+    # pm.predict(select_model=PredictModel.MODEL_LSTM, epoch=100)
     # pm.predict(select_model=PredictModel.MODEL_SVR)
     # pm.predict(select_model=PredictModel.MODEL_KNN)
     # pm.predict(select_model=PredictModel.MODEL_DECISION_TREE)
@@ -280,5 +298,5 @@ if __name__ == '__main__':
     # pm.predict(select_model=PredictModel.MODEL_GBRT, step=2)
     # pm.predict(select_model=PredictModel.MODEL_HA)
 
-    # PredictModel.predict_and_record_all_models(source='../height_model/merged/stn_59758.xlsx', epoch=1000)
-    PredictModel.predict_and_eval_all_models(source='../height_model/merged/stn_59758.xlsx')
+    PredictModel.predict_and_record_all_models(source='../height_model/merged/stn_59758.xlsx', epoch=1000)
+    # PredictModel.predict_and_eval_all_models(source='../height_model/merged/stn_59758.xlsx')
