@@ -21,6 +21,7 @@ class DataSet:
 
     MODEL_NOT_SPECIFY = 0
     MODEL_LSTM = 1
+    MODEL_RNN = 2
 
     def __init__(self, source='../height_model/merged/stn_54511.xlsx', col=FEATURE_NPS, init_feature=True,
                  start_date='1/1/2020', end_date='12/31/2021', machine_learning=False):
@@ -39,12 +40,12 @@ class DataSet:
             print('DataSet __init__ error: {}'.format(e))
             self.date_index = None
         if init_feature:
-            target = np.array(self.raw_data.iloc[:, col].to_list(), dtype=np.float16)
+            target = np.array(self.raw_data.iloc[:, col].to_list(), dtype=np.float64)
             self.data_scaler = MinMaxScaler()
             self.data = self.data_scaler.fit_transform(target.reshape(-1, 1))
 
     def change_feature(self, col=FEATURE_NPS):
-        target = np.array(self.raw_data.iloc[:, col].to_list(), dtype=np.float16)
+        target = np.array(self.raw_data.iloc[:, col].to_list(), dtype=np.float64)
         self.data_scaler = MinMaxScaler()
         self.data = self.data_scaler.fit_transform(target.reshape(-1, 1))
 
@@ -84,7 +85,7 @@ class DataSet:
         if output_window != 1 and step != 1:
             print('_split... output_window and step can not != 1 at the same time.')
             return [], [], [], []
-
+        self.step = step
         self.ratio = ratio_train
         self.machine_learning = machine_learning
         _len = len(input_data)
