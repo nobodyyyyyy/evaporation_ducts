@@ -252,7 +252,7 @@ class DataUtils:
     def get_support_data(year: int, month: int, type_: str, lan: float, lng: float, time_, level=-1,
                          file_name='', file_type=FILE_TYPE_EAR5, search_bounds=5):
         """
-        获取辅助数据，主要是 nc 文件内容
+        获取辅助数据，主要是 nc 文件内容 【再分析资料主要获取方法】
         :param month:
         :param year:
         :param type_: omega, q, skt, slp, sst, temp, u10m, uwind, v10m, vwind, zg

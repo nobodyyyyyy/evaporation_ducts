@@ -28,6 +28,18 @@ class DrawUtil:
         plt.ylabel('高度/m')
         plt.show()
 
+    @staticmethod
+    def draw_line_chart(x_axis_data, y_axis_data):
+
+        plt.plot(x_axis_data, y_axis_data, 'r', alpha=0.5, linewidth=1, label='acc')
+
+        plt.legend()  # 显示上面的label
+        plt.xlabel('time')  # x_label
+        plt.ylabel('number')  # y_label
+
+        # plt.ylim(-1,1)#仅设置y轴坐标范围
+        plt.show()
+
 
 if __name__ == '__main__':
     pass
