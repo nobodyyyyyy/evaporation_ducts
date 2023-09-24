@@ -23,17 +23,10 @@ export default {
 }
 
 html, body, #app{
+  font-family: ”Microsoft YaHei”,Arial,Helvetica,sans-serif,”宋体”;
   margin: 0;
   padding: 0;
   height: 100%;
-}
-
-// 不显示滚动条
-::-webkit-scrollbar {
-  width: 0 !important;
-}
-::-webkit-scrollbar {
-  width: 0 !important;height: 0;
 }
 
 </style>

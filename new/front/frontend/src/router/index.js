@@ -3,7 +3,8 @@ import Router from 'vue-router'
 import AppIndex from '../home/AppIndex'
 import Login from '../components/Login'
 import Home from '../components/Home'
-import DataView from '../components/dataview/DataView.vue'
+import AnalysisDataView from '../components/dataview/AnalysisDataView.vue'
+import OriginDataView from '../components/dataview/OriginDataView.vue'
 import Main from '../components/Main.vue'
 
 Vue.use(Router)
@@ -34,9 +35,14 @@ export default new Router({
           component: AppIndex
         },
         {
-          path: '/data-view',
-          name: 'Dataview',
-          component: DataView
+          path: '/AnalysisDataView',
+          name: 'AnalysisDataView',
+          component: AnalysisDataView
+        },
+        {
+          path: '/OriginDataView',
+          name: 'OriginDataView',
+          component: OriginDataView
         }
       ]
     },

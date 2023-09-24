@@ -112,7 +112,7 @@ export default {
 
 .entry-btn {
   width: 300px;
-  height: 60px;
+  //height: 60px;
   font-size: 25px;
   border: 0;
   background: rgba(253, 252, 252, 0.8);
@@ -136,7 +136,7 @@ export default {
   //background-color: #E9EEF3;
   color: #333;
   text-align: center;
-  line-height: 160px;
+  //line-height: 160px;
   height: 100%;
 }
 

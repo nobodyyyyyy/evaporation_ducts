@@ -58,7 +58,7 @@ class HeightCal:
             station_path = txt_root_file + '/' + station_name
             if station_name not in self.station_info.keys():
                 tmp_file = DataUtils.get_all_file_names(station_path)[0]
-                with open(station_path + '/' + tmp_file, mode='r') as _file:
+                with open(station_path + '/' + tmp_file, mode='r', errors='ignore') as _file:
                     line = _file.readlines()
                     pos_line = 2
                     try:

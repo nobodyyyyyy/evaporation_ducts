@@ -3,9 +3,11 @@ import os
 import re
 import time
 import warnings
+from datetime import datetime
 
 import numpy as np
 import netCDF4 as nc
+import pandas as pd
 from numpy import ndarray
 from openpyxl import Workbook
 
@@ -43,6 +45,11 @@ class DataUtils:
             return f'[{self.id}] {self.location}. lat: {self.lat}, lon: {self.lon}. heights: {self.heights}\n'
 
     def __new__(cls, *args, **kwargs):
+        """
+        有一说一，Util 还整个单例就很不合理命名的
+        :param args:
+        :param kwargs:
+        """
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
@@ -52,6 +59,127 @@ class DataUtils:
             DataUtils._exist = True
             self.nc_dataset_cache = {}
             self.primary_dataset_cache = {}
+
+    @staticmethod
+    def get_source_display(source_str, year=2020):
+        if source_str == 'NOAA':
+            return DataUtils.FILE_TYPE_NOAA
+        elif source_str == 'EAR5' and year == 2021:
+            return DataUtils.FILE_TYPE_EAR5_2021_ODD
+        elif source_str == 'EAR5':
+            return DataUtils.FILE_TYPE_EAR5
+        else:
+            return -1
+
+    @staticmethod
+    def type_rename(type_):
+        if type_ == 'slp':
+            type_ = 'msl'
+        elif type_ == 'omega':
+            type_ = 'w'
+        elif type_ == 'temp':
+            type_ = 't'
+        elif type_ == 'u10m':
+            type_ = 'u10'
+        elif type_ == 'v10m':
+            type_ = 'v10'
+        elif type_ == 'uwind':
+            type_ = 'u'
+        elif type_ == 'vwind':
+            type_ = 'v'
+        elif type_ == 'zg':
+            type_ = 'z'
+        return type_
+
+    @staticmethod
+    def get_origin_file_address(station_id, date, prefix="."):
+        """
+        拿探空资料位置
+        :param prefix: 前置位置
+        :param date: 2020-01-01 like
+        :param station_id:  stn_xxxxx
+        :return:
+        """
+        return f'{prefix}/all_sounding_processed/{station_id}/{station_id}_{date}_00UTC.npy'
+
+    @staticmethod
+    def get_origin_file_addresses(station_id, data_from, date_to, prefix="."):
+        """
+        拿探空资料位置集合【顺序】
+        :param station_id: stn_xxxxx
+        :param data_from: 2020-01-01 like
+        :param date_to: 2020-01-01 like
+        :param prefix: 前置位置
+        :return:
+        """
+        ret_files = []
+        dates = pd.date_range(start=data_from, end=date_to)
+        ret_dates = []
+        for d in dates:
+            date = f'{d.year}-{TimeUtil.format_month_or_day(d.month)}-{TimeUtil.format_month_or_day(d.day)}'
+            f = f'{prefix}/all_sounding_processed/{station_id}/{station_id}_{date}_00UTC.npy'
+
+            if os.path.exists(f):
+                ret_files.append(f)
+                ret_dates.append(date)
+        return ret_files, ret_dates
+
+    @staticmethod
+    def get_nc_file_address(source_code, timestamp, type_name, prefix="."):
+        if type(source_code) is str:
+            source_code = DataUtils.get_source_display(source_code)
+        if source_code == -1:
+            print('DataUtil... get_file_address source_code unknown')
+        ret = ''
+
+        dt = TimeUtil.timestamp_to_datetime(timestamp)
+        y, m, d = TimeUtil.format_date_to_year_month_day(str(dt))
+        _year = str(y)
+        _month = TimeUtil.format_month_or_day(m)
+
+        if source_code == DataUtils.FILE_TYPE_NOAA:
+            ret = f'{prefix}/AEM/{type_name}.{_year}-01.daily.nc'
+        elif source_code == DataUtils.FILE_TYPE_EAR5:
+            ret = f'{prefix}/ERA5_daily/{type_name}/{type_name}.{_year}-{_month}.daily.nc'
+        # todo 2021 odd EAR5
+        return ret
+
+    @staticmethod
+    def get_nc_file_addresses(source_code, timestamp_s, timestamp_e, type_name, prefix="."):
+        """
+        为周期数据拿文件数组
+        :param timestamp_e:
+        :param timestamp_s:
+        :param source_code:
+        :param type_name:
+        :param prefix:
+        :return:
+        """
+        if type(source_code) is str:
+            source_code = DataUtils.get_source_display(source_code)
+        if source_code == -1:
+            print('DataUtil... get_file_address source_code unknown')
+        ret = []
+        dt_s = TimeUtil.timestamp_to_datetime(timestamp_s)
+        dt_e = TimeUtil.timestamp_to_datetime(timestamp_e)
+        y_s, m_s, d_s = TimeUtil.format_date_to_year_month_day(str(dt_s))
+        y_e, m_e, d_e = TimeUtil.format_date_to_year_month_day(str(dt_e))
+        year_s = str(y_s)
+        year_e = str(y_e)
+        # month_s = TimeUtil.format_month_or_day(m_s)
+        # month_e = TimeUtil.format_month_or_day(m_e)
+
+        # todo 目前没有需要处理的年份信息
+
+        if source_code == DataUtils.FILE_TYPE_NOAA:
+            # NOAA 的数据目前是一个文件夹就能包含的
+            ret.append(f'{prefix}/AEM/{type_name}.{year_s}-01.daily.nc')
+        elif source_code == DataUtils.FILE_TYPE_EAR5:
+            for m in range(m_s, m_e + 1):
+                ret.append(f'{prefix}/ERA5_daily/{type_name}/{type_name}.{year_s}-{TimeUtil.format_month_or_day(m)}.daily.nc')
+
+        # todo 2021 odd EAR5
+        return ret
 
     @staticmethod
     def get_all_file_names(path, recursive=False, filter_end=None):
@@ -76,7 +204,70 @@ class DataUtils:
 
     @staticmethod
     def get_file_name(dir_):
-        return dir_.split('/')[-1]
+        try:
+            ret = dir_.split('/')[-1]
+        except Exception as e:
+            ret = dir_
+            print('DataUtil... [Warning] get_file_name input: {}'.format(dir_))
+        return ret
+
+    @staticmethod
+    def fill_lat_lng(start, end):
+        ret = [start]
+        while start != end + 1:
+            start += 1
+            ret.append(start)
+        return ret
+
+    @staticmethod
+    def gen_data_response_4_heatmap(data):
+        """
+        根据 echarts 的热力图要求生成对应回包【再分析数据】
+        :param data: 二维热力图数据
+        :return:
+        """
+        ret = []
+        # lat_n = data.shape[0]
+        # lng_n = data.shape[1]
+        _min = 10000000
+        _max = 0
+        try:
+            lat_n = len(data)
+            lng_n = len(data[0])
+        except Exception as e:
+            print('DataUtil... gen_data_response_4_heatmap... Error {}'.format(e))
+            lat_n = 0
+            lng_n = 0
+            _min = 0
+            _max = 0
+        for i in range(0, lat_n):
+            for j in range(0, lng_n):
+                ret.append([i, j, data[i][j]])
+                if data[i][j] != 0.:
+                    _max = max(_max, data[i][j])
+                    _min = min(_min, data[i][j])
+        return ret, _max, _min
+
+    @staticmethod
+    def gen_data_response_4_linechart(data, time_s, time_e):
+        """
+        根据 echarts 的折线图要求生成对应回包【再分析数据】
+        :return:
+        """
+        time_axis = []
+        _min = 10000000
+        _max = 0
+        time_tmp = pd.date_range(time_s, time_e)
+        for e in time_tmp:
+            time_axis.append(e.strftime('%Y-%m-%d'))
+        for e in data:
+            if e != 0:
+                _max = max(_max, e)
+                _min = min(_min, e)
+        # if int(_min) - 1 != 0:
+        #     _min = int(_min) - 1
+        # _max = int(_max) + 1
+        return time_axis, data, _max, _min
 
     @staticmethod
     def excel_writer_prepare(header, output_name='', title_name='result'):
@@ -144,35 +335,42 @@ class DataUtils:
             files.append(dir_)
 
         os.makedirs(dest_, exist_ok=True)
-
-        for f in files:
-            with open('{}/{}'.format(dir_, f), mode='r') as file:
-                line = file.readlines()
-                # generate name
-                output = dest_ + '/' + f.split('.')[-2] + '.npy'
-
-                # bugfix: 12/9/2022 yrt 原本代码无法支持数据缺失和数据长度异常、过大等问题
-            # 由于数据是右对齐的，所以取 header 的最右边的列，可以拿到对应的数据右边界
-            header = line[5]
-            col_index = DataUtils.get_heading_idx_for_sounding_txt(header)
-
-            lst = []
-            entries = ["PRES", "HGNT", "TEMP", "DWPT", "RELH", "MIXR", "DRCT", "SPED", "THTA", "THTE", "THTV"]
-            temp = dict.fromkeys(entries)
-            _ = 8
-            while _ < len(line) - 1:
-                for col in range(1, len(col_index)):
-                    _key = entries[col - 1]
-                    _val = line[_][col_index[col - 1]: col_index[col] + 1].strip()
-                    temp[_key] = float(_val) if _val else None
-                _ += 1
-                lst.append(temp.copy())
-
-            np.save(output, lst)
         try:
-            print('txt_file_to_npy Complete for station {}'.format(dir_.split('/')[-1]))
+            for f in files:
+                with open('{}/{}'.format(dir_, f), mode='r') as file:
+                    line = file.readlines()
+                    # generate name
+                    output = dest_ + '/' + f.split('.')[-2] + '.npy'
+
+                    # bugfix: 12/9/2022 yrt 原本代码无法支持数据缺失和数据长度异常、过大等问题
+                # 由于数据是右对齐的，所以取 header 的最右边的列，可以拿到对应的数据右边界
+                header = line[5]
+                col_index = DataUtils.get_heading_idx_for_sounding_txt(header)
+
+                lst = []
+                entries = ["PRES", "HGNT", "TEMP", "DWPT", "RELH", "MIXR", "DRCT", "SPED", "THTA", "THTE", "THTV"]
+                temp = dict.fromkeys(entries)
+                _ = 8
+                while _ < len(line) - 1:
+                    for col in range(1, len(col_index)):
+                        _key = entries[col - 1]
+                        _val = line[_][col_index[col - 1]: col_index[col] + 1].strip()
+                        temp[_key] = float(_val) if _val else None
+                    _ += 1
+                    lst.append(temp.copy())
+
+                np.save(output, lst)
+            try:
+                print('txt_file_to_npy Complete for station {}'.format(dir_.split('/')[-1]))
+            except:
+                print('txt_file_to_npy Complete')
         except:
-            print('txt_file_to_npy Complete.')
+            print('txt_file_to_npy Error occurs. No record for current station {}'.format(dir_))
+            # todo 需要手動刪除錯誤的文件夾！！！
+            # try:
+            #     os.removedirs(dest_)
+            # except:
+            #     print('txt_file_to_npy When error occurs, files still cannot be removed')
 
     @staticmethod
     def aem_data_to_npy(dir_, dest_):
@@ -230,9 +428,14 @@ class DataUtils:
     @staticmethod
     def inner_get_idx(arr: ndarray, val, is_strict=False):
         n = len(arr)
-        idx = bisect.bisect(arr, val)
-        if arr[idx] == val:
-            return idx
+        idx = bisect.bisect_left(arr, val)
+        try:
+            if arr[idx] == val:
+                return idx
+        except Exception as e:
+            print('inner_get_idx... out of bounds ? for idx {}'.format(idx))
+            if idx > 0:
+                return idx - 1
         if is_strict:
             return -1
         if idx >= n:
@@ -241,18 +444,20 @@ class DataUtils:
         else:
             # 取近邻
             # 要知道如果没找到，bisect 默认取右值
-            if idx == 0:
-                return idx
-            elif arr[idx] - val > val - arr[idx - 1]:
-                return idx - 1
-            else:
-                return idx
+            # if idx == 0:
+            #     return idx
+            # elif arr[idx] - val > val - arr[idx - 1]:
+            #     return idx - 1
+            # else:
+            #     return idx
+            return idx
 
     @staticmethod
     def get_support_data(year: int, month: int, type_: str, lan: float, lng: float, time_, level=-1,
                          file_name='', file_type=FILE_TYPE_EAR5, search_bounds=5):
         """
         获取辅助数据，主要是 nc 文件内容 【再分析资料主要获取方法】
+        这个方法是很久之前写的，主要为的是拿单个数据
         :param month:
         :param year:
         :param type_: omega, q, skt, slp, sst, temp, u10m, uwind, v10m, vwind, zg
@@ -273,10 +478,14 @@ class DataUtils:
             lat_idx_reverse = True
             nc_timestamp = TimeUtil.time_millis_2_nc_timestamp(time_)
         elif file_type == DataUtils.FILE_TYPE_NOAA:
-            lat_desp = 'lat'
-            lon_desp = 'lon'
-            lat_idx_reverse = False
-            nc_timestamp = TimeUtil.time_millis_2_noaa_timestamp(time_)
+            # 2023/9/15 使用 AEM 文件夹下文件 key 修改
+            # lat_desp = 'lat'
+            # lon_desp = 'lon'
+            lat_desp = 'latitude'
+            lon_desp = 'longitude'
+            lat_idx_reverse = True
+            # todo 为什么  NOAA 时间戳变了
+            nc_timestamp = TimeUtil.time_millis_2_nc_timestamp(time_)
         elif file_type == DataUtils.FILE_TYPE_EAR5_2021_ODD:
             lat_desp = 'lat'
             lon_desp = 'lon'
@@ -322,12 +531,13 @@ class DataUtils:
                 time_idx = day  # 加一天
             else:
                 time_idx = day - 1
-        if type_ in ['skt', 'slp', 'sst', 'u10m', 'v10m']:
+        type_ = DataUtils.type_rename(type_)
+        if type_ in ['skt', 'slp', 'sst', 'u10m', 'v10m', 'msl', 'u10', 'v10']:
             # data with shape (time, latitude, longitude)
             data_type = 1
             val = dataset.variables[type_][time_idx][lat_idx][lng_idx]
 
-        elif type_ in ['omega', 'q', 'temp', 'uwind', 'vwind', 'zg']:
+        elif type_ in ['omega', 'q', 'temp', 'uwind', 'vwind', 'zg', 'w', 't', 'u', 'v', 'z']:
             # data with shape (time, level, latitude, longitude)
             data_type = 2
             if level == -1:
@@ -363,6 +573,202 @@ class DataUtils:
                   'Lat: {} Lon: {} '.format(lan, lng))
             return -999
         return val
+
+    @staticmethod
+    def get_support_data_single_date(year: int, month: int, type_: str, lan_s: float, lan_e: float,
+                                     lng_s: float, lng_e: float, time_, level=-1, file_name='',
+                                     file_type=FILE_TYPE_EAR5,):
+        """
+        获取单天的某个再分析资料的热力图数据
+        和上面方法高度重复，懒得合并了
+        :return:
+        """
+        month = TimeUtil.format_month_or_day(month)
+
+        if file_type == DataUtils.FILE_TYPE_EAR5:
+            lat_desp = 'latitude'
+            lon_desp = 'longitude'
+            lat_idx_reverse = True
+            nc_timestamp = TimeUtil.time_millis_2_nc_timestamp(time_)
+        elif file_type == DataUtils.FILE_TYPE_NOAA:
+            # 2023/9/15 使用 AEM 文件夹下文件 key 修改
+            # lat_desp = 'lat'
+            # lon_desp = 'lon'
+            lat_desp = 'latitude'
+            lon_desp = 'longitude'
+            lat_idx_reverse = True
+            # todo 为什么  NOAA 时间戳变了
+            nc_timestamp = TimeUtil.time_millis_2_nc_timestamp(time_)
+        elif file_type == DataUtils.FILE_TYPE_EAR5_2021_ODD:
+            lat_desp = 'lat'
+            lon_desp = 'lon'
+            lat_idx_reverse = True
+            nc_timestamp = TimeUtil.time_millis_2_nc_timestamp(time_)
+        else:
+            print('get_support_data_single_date... file type [{}] not supported.'.format(file_type))
+            return -999
+
+        if file_name.strip() == '':
+            # 没指定的一律读 era5 daily
+            # 12/9/2022 ERA5 文件迁移及格式修改
+            file = './ERA5_daily/{}/{}.{}-{}.daily.nc'.format(type_, type_, year, month)
+        else:
+            file = file_name
+        inst = DataUtils()
+        if DataUtils.get_file_name(file) not in inst.nc_dataset_cache.keys():
+            dataset = nc.Dataset(file)
+            inst.nc_dataset_cache[DataUtils.get_file_name(file)] = dataset
+        else:
+            dataset = inst.nc_dataset_cache[DataUtils.get_file_name(file)]
+        if dataset is None:
+            print('get_support_data_single_date... Could not load dataset for file: {}'.format(file))
+            return -999
+
+        lats = np.array(dataset.variables[lat_desp][:])
+        lngs = np.array(dataset.variables[lon_desp][:])
+        times = np.array(dataset.variables['time'][:])
+        # find corresponding idx for lan, lng, time
+        lat_s_idx = DataUtils.get_idx_for_val_pos(lats, lan_s, is_reverse=lat_idx_reverse)
+        lng_s_idx = DataUtils.get_idx_for_val_pos(lngs, lng_s)
+        lat_e_idx = DataUtils.get_idx_for_val_pos(lats, lan_e, is_reverse=lat_idx_reverse)
+        lng_e_idx = DataUtils.get_idx_for_val_pos(lngs, lng_e)
+        if lat_idx_reverse:
+            _ = lat_s_idx
+            lat_s_idx = lat_e_idx
+            lat_e_idx = _
+        try:
+            time_idx = DataUtils.get_idx_for_val_pos(times, nc_timestamp)
+        except IndexError as e:
+            # q 数据集时间是有缺失的我真无语住了
+            # 这种情况就（合理地）认为，使用传入的时间戳 time 转换为临近的日作为 time_idx
+            print(e)
+            year_ = time.localtime(time_).tm_year
+            month_ = time.localtime(time_).tm_mon
+            day = time.localtime(time_).tm_mday
+            hour = time.localtime(time_).tm_hour
+            if hour >= 12 and day != 1 and day != TimeUtil.get_day_sum(year_, month_):
+                time_idx = day  # 加一天
+            else:
+                time_idx = day - 1
+        type_ = DataUtils.type_rename(type_)
+        if type_ in ['skt', 'slp', 'sst', 'u10m', 'v10m', 'msl', 'u10', 'v10']:
+            # data with shape (time, latitude, longitude)
+            temp = np.ma.filled(dataset.variables[type_][time_idx], fill_value=0)
+            val = temp[lat_s_idx: lat_e_idx + 1, lng_s_idx: lng_e_idx + 1]
+
+        elif type_ in ['omega', 'q', 'temp', 'uwind', 'vwind', 'zg', 'w', 't', 'u', 'v', 'z']:
+            # data with shape (time, level, latitude, longitude)
+            if level == -1:
+                print('Request level')
+                return None
+            levels = np.array(dataset.variables['level'][:])
+            level_idx = DataUtils.get_idx_for_val_pos(levels, level, is_strict=False)  # todo 大气压是否要严格相等呢？
+            temp = np.ma.filled(dataset.variables[type_][time_idx][level_idx], fill_value=0)
+            val = temp[lat_s_idx: lat_e_idx, lng_s_idx: lng_e_idx]
+        else:
+            print('get_support_data_single_date... type_ is not supported')
+            return None
+
+        return val
+
+    @staticmethod
+    def get_support_data_range(year_start: int, month_start: int,
+                               year_end: int, month_end: int, type_: str, lan: float,
+                               lng: float, time_start, time_end, level=-1, file_arr=None,
+                               file_type=FILE_TYPE_EAR5, ):
+        """
+        获取时间段内的某个再分析资料的折线图数据
+        和上面方法高度重复，懒得合并了
+        :return:
+        """
+        if file_arr is None:
+            file_arr = []
+        if file_type == DataUtils.FILE_TYPE_EAR5:
+            lat_desp = 'latitude'
+            lon_desp = 'longitude'
+            lat_idx_reverse = True
+            start_time = TimeUtil.time_millis_2_nc_timestamp(time_start)
+            end_time = TimeUtil.time_millis_2_nc_timestamp(time_end)
+        elif file_type == DataUtils.FILE_TYPE_NOAA:
+            # 2023/9/15 使用 AEM 文件夹下文件 key 修改
+            # lat_desp = 'lat'
+            # lon_desp = 'lon'
+            lat_desp = 'latitude'
+            lon_desp = 'longitude'
+            lat_idx_reverse = True
+            # todo 为什么 NOAA 时间戳又变了？
+            start_time = TimeUtil.time_millis_2_nc_timestamp(time_start)
+            end_time = TimeUtil.time_millis_2_nc_timestamp(time_end)
+        elif file_type == DataUtils.FILE_TYPE_EAR5_2021_ODD:
+            lat_desp = 'lat'
+            lon_desp = 'lon'
+            lat_idx_reverse = True
+            start_time = TimeUtil.time_millis_2_nc_timestamp(time_start)
+            end_time = TimeUtil.time_millis_2_nc_timestamp(time_end)
+        else:
+            print('get_support_data_range... file type [{}] not supported.'.format(file_type))
+            return -999
+
+        month_s = TimeUtil.format_month_or_day(month_start)
+        month_e = TimeUtil.format_month_or_day(month_end)
+        inst = DataUtils()
+        type_ = DataUtils.type_rename(type_)
+        # val = np.array()
+        ret = []
+        for file_idx in range(0, len(file_arr)):
+            file = file_arr[file_idx]
+            if DataUtils.get_file_name(file) not in inst.nc_dataset_cache.keys():
+                dataset = nc.Dataset(file)
+                inst.nc_dataset_cache[DataUtils.get_file_name(file)] = dataset
+            else:
+                dataset = inst.nc_dataset_cache[DataUtils.get_file_name(file)]
+            if dataset is None:
+                print('get_support_data_range... Could not load dataset for file: {}'.format(file))
+                return -999
+
+            lats = np.array(dataset.variables[lat_desp][:])
+            lngs = np.array(dataset.variables[lon_desp][:])
+            times = np.array(dataset.variables['time'][:])
+            # find corresponding idx for lan, lng, time
+            lat_idx = DataUtils.get_idx_for_val_pos(lats, lan, is_reverse=lat_idx_reverse)
+            lng_idx = DataUtils.get_idx_for_val_pos(lngs, lng)
+
+            # 如果 idx 是 0，取开始时间 ~ 结尾
+            # 如果 idx 是最后一个，取开始位置 ~ 结束时间
+            # 其他情况全取
+            if len(file_arr) == 1:
+                # 只有一个文件，正常处理
+                time_idx_s = DataUtils.get_idx_for_val_pos(times, start_time)
+                time_idx_e = DataUtils.get_idx_for_val_pos(times, end_time)
+                val = dataset.variables[type_][time_idx_s:time_idx_e + 1]
+            elif file_idx == 0:
+                time_idx_s = DataUtils.get_idx_for_val_pos(times, start_time)  # todo 去除了 q 的时间判断，因为后来都没发生
+                val = dataset.variables[type_][time_idx_s:]
+            elif file_idx == len(file_arr) - 1:
+                time_idx_e = DataUtils.get_idx_for_val_pos(times, end_time)
+                val = dataset.variables[type_][:time_idx_e + 1]
+            else:
+                # 不需要额外时间 idx 信息
+                val = dataset.variables[type_][:]
+
+            val = np.ma.filled(val, fill_value=0)
+
+            if type_ in ['skt', 'slp', 'sst', 'u10m', 'v10m', 'msl', 'u10', 'v10']:
+                # data with shape (time, latitude, longitude)
+                ret += val[:, lat_idx, lng_idx].tolist()
+            elif type_ in ['omega', 'q', 'temp', 'uwind', 'vwind', 'zg', 'w', 't', 'u', 'v', 'z']:
+                # data with shape (time, level, latitude, longitude)
+                if level == -1:
+                    print('Request level')
+                    return -999
+                levels = np.array(dataset.variables['level'][:])
+                level_idx = DataUtils.get_idx_for_val_pos(levels, level, is_strict=False)  # todo 大气压是否要严格相等呢？
+                ret += val[:, level_idx, lat_idx, lng_idx].tolist()
+            else:
+                print('get_support_data_range... type_ is not supported')
+                return None
+
+        return ret
 
     @staticmethod
     def generate_ref_and_h(data, axis=None):
@@ -401,5 +807,9 @@ if __name__ == '__main__':
     # DataUtils.txt_file_to_npy('../data/test_2022_12_02/sounding_data/stn_59758',
     #                           '../data/test_2022_12_02/sounding_data/stn_59758_processed',
     #                           batch=True)
-    DataUtils.txt_file_to_npy('./sounding/stn_52533/stn_52533_2020-01-01_00UTC.txt', './tes')
+    # DataUtils.txt_file_to_npy('./sounding/stn_52533/stn_52533_2020-01-01_00UTC.txt', './tes')
+
+    # DataUtils.get_support_data_single_date(2020, 1, 'sst', 42.2, 47, 40, 48, 1578903004)
+
+    DataUtils.get_nc_file_address(1, 1578903004, 'a')
     pass

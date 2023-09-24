@@ -1,7 +1,10 @@
 from flask import Flask, jsonify, request
 
+from new.flask.SupportedSingletons import SupportedSingletons
 from testapi import account_api
-from data_view_api import data_view_api
+from api_analysis_data_view import data_view_api
+from api_origin_data_view import origin_data_view_api
+from api_duct_height import duct_height_api
 
 from flask_cors import *
 
@@ -12,6 +15,12 @@ app.config['JSON_AS_ASCII'] = False  # 禁止中文转义
 # 注册列表
 app.register_blueprint(account_api)
 app.register_blueprint(data_view_api)
+app.register_blueprint(origin_data_view_api)
+app.register_blueprint(duct_height_api)
+
+# 单例列表
+modules = SupportedSingletons()
+
 
 @app.route('/login', methods=['POST', 'GET'])
 def returns():

@@ -5,7 +5,7 @@
         <div style="float: left;  left: 2%;">
           <img :src="iconImg" style="padding-top: 5px; padding-right: 6px; height: 40px; width: 40px" alt="">
           <span style="position: absolute; line-height: 55px; font-size: 23px; font-weight: bold; color: white">
-          短临预测蒸发波导软件
+          短临预测蒸发波导系统
         </span>
         </div>
       </el-header>
@@ -39,7 +39,7 @@ export default {
   background-color: #B3C0D1;
   color: #333;
   text-align: center;
-  line-height: 60px;
+  //line-height: 60px;
 }
 
 .header-view {
@@ -59,7 +59,7 @@ export default {
   background-color: #E9EEF3;
   color: #333;
   text-align: center;
-  line-height: 160px;
+  //line-height: 160px;
 }
 
 body > .el-container {
@@ -74,4 +74,15 @@ body > .el-container {
 .el-container:nth-child(7) .el-aside {
   line-height: 320px;
 }
+
+::-webkit-scrollbar {
+  width: 0 !important;
+}
+::-webkit-scrollbar {
+  width: 0 !important;height: 0;
+}
+.inner::-webkit-scrollbar {
+  display: none;
+}
+
 </style>

@@ -21,11 +21,11 @@ class TimeUtil:
         return input_
 
     @staticmethod
-    def format_date_to_year_month_day(str_like_date):
+    def format_date_to_year_month_day(str_like_date, format_="%Y-%m-%d"):
         """
         '2022-01-02' -> 2022, 1, 2
         """
-        t = time.strptime(str_like_date, "%Y-%m-%d")
+        t = time.strptime(str_like_date, format_)
         return t.tm_year, t.tm_mon, t.tm_mday
 
     @staticmethod
@@ -36,6 +36,12 @@ class TimeUtil:
     def to_time_millis(year_, month_, day_, hr_, min_, sec_):
         dt = datetime.datetime(year_, month_, day_, hr_, min_, sec_)
         return int(time.mktime(dt.timetuple()))
+
+    @staticmethod
+    def timestamp_to_datetime(ts, format_="%Y-%m-%d"):
+        from datetime import datetime
+        tmp = datetime.strptime(time.strftime(format_, time.localtime(ts)), format_)
+        return datetime.date(tmp)
 
     @staticmethod
     def time_millis_2_nc_timestamp(time_millis):

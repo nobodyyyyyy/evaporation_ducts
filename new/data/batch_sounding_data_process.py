@@ -8,11 +8,8 @@ from new.data.DataUtil import DataUtils
 
 
 class SoundingDataProcess(DataUtils):
-
-
     SELECTED_ID = ['stn_58150', 'stn_59316', 'stn_58665', 'stn_59981', 'stn_58362', 'stn_54511',
                    'stn_58203', 'stn_58238', 'stn_58027', 'stn_58457', 'stn_58606', 'stn_58424', 'stn_59758']
-
 
     @staticmethod
     def batch_sounding_data_to_npy(root_path, des_path, filtered=False):
@@ -23,7 +20,6 @@ class SoundingDataProcess(DataUtils):
         for _folder in _folders:
             DataUtils.txt_file_to_npy(dir_=root_path + _folder, dest_=des_path + _folder, batch=True)
         print('batch_sounding_data_to_npy... Complete')
-
 
     @staticmethod
     def batch_interpolation_4_height(root_path, dest_path, avg_num=5, method='hypsometric', debug=False):
@@ -80,9 +76,8 @@ class SoundingDataProcess(DataUtils):
                 np.save(_dest_name, _dataset)
         print('batch_interpolation_4_height... Complete')
 
-
     @staticmethod
-    def get_proper_sounding_data_info(root_path, n_heights=10, wrt=False):
+    def get_proper_sounding_data_info(root_path, n_heights=10, wrt=False, check_valid=False, check_valid_root_path=''):
         """
         由于探空点位太高，所以要找一些点位低的探测点
         取第一天的数据即可
@@ -93,6 +88,11 @@ class SoundingDataProcess(DataUtils):
         for _f in _folders:
             if _f.find('.') >= 0:  # 可以修改一下逻辑。
                 continue
+            if check_valid:
+                # 可以優化，但懶得
+                exists_files = DataUtils.get_all_file_names(check_valid_root_path)
+                if _f not in exists_files:
+                    continue
             _folder_name = root_path + '{}/'.format(_f)
             _file_name = _folder_name + os.listdir(_folder_name)[0]  # 拿第一个 txt 文件
             with open(_file_name, mode='r') as _file:
@@ -130,7 +130,7 @@ class SoundingDataProcess(DataUtils):
         if wrt:
             # 写 excel
             wb, ws, output_name = DataUtils.excel_writer_prepare(header=['站点id', '位置', 'lat', 'lng'],
-                                                                 output_name='station_height.xlsx')
+                                                                 output_name='station_info.xlsx')
             for s in stations:
                 line = [s.id, s.location, s.lat, s.lon]
                 for h in s.heights:
@@ -144,4 +144,11 @@ class SoundingDataProcess(DataUtils):
 
 if __name__ == '__main__':
     # print(SoundingDataProcess.get_proper_sounding_data_info('../data/sounding/', n_heights=10, wrt=True))
-    SoundingDataProcess.batch_interpolation_4_height('../data/sounding_processed/', '../data/sounding_processed_hgt/')
+    # SoundingDataProcess.batch_interpolation_4_height('../data/sounding_processed/', '../data/sounding_processed_hgt/')
+
+    # 為所有的站點都處理成 npy 格式信息
+    # SoundingDataProcess.batch_sounding_data_to_npy('sounding/', 'all_sounding_processed/')
+
+    # 為所有的站點生成信息 excel
+    SoundingDataProcess.get_proper_sounding_data_info('../data/sounding/', n_heights=10, wrt=True, check_valid=True,
+                                                      check_valid_root_path='../data/all_sounding_processed/')

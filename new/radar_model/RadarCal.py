@@ -17,7 +17,8 @@ from new.radar_model import newspe
 class RadarCal:
 
     def __init__(self):
-        self.dataset_cache = {}
+        # self.dataset_cache = {}
+        pass
 
     @staticmethod
     def radar_data_pre_generate(ref, h):
@@ -280,7 +281,8 @@ class RadarCal:
         """
         loss = newspe.spee(30, 8600, 8)
         ls = loss
-        heights_len = ls.shape[0]
+        # heights_len = ls.shape[0]
+        heights_len = 30
         ranges = ls.shape[1]
         fields = []
         x_axis = list(range(0, heights_len))
@@ -309,4 +311,4 @@ if __name__ == '__main__':
     print(rc.get_Ts())
     rc.get_detected_field(None, rc.get_Ts())
     # loss = newspe.spee(30, 8600, 8)
-    # DrawUtil.draw_l_single_heatmap(loss, title='80m')
+    # DrawUtil.draw_l_single_heatmap(loss, title='30m')
