@@ -150,9 +150,9 @@
             </el-table>
           </template>
           <div id="stackedLineChart" style='width: 1200px; height: 800px; overflow: auto; left: 50px'
-               v-if="displayModeSelected === '按时间段显示'"></div>
+               v-if="stackedLineChartShown"></div>
           <div id="singleDayLineChart" style='width: 1200px; height: 800px; overflow: auto; left: 50px'
-               v-if="displayModeSelected === '按天显示' && singleDateDisplayModeSelected === '单一数据垂直分布'"></div>
+               v-if="singleDayLineChartShown"></div>
         </div>
       </el-main>
     </el-container>
@@ -202,7 +202,10 @@ export default {
       singleDateDisplayTypes: [],
       singleDateDisplayTypeSelected: '',
       singleDateColNameMap: new Map(),
-      singleDayLineChartExist: false
+      singleDayLineChartExist: false,
+
+      stackedLineChartShown: false,
+      singleDayLineChartShown: false
     }
   },
   mounted () {
@@ -233,13 +236,12 @@ export default {
     },
     locationSelectedChangeEvent (val) {
     },
-    onRangeSelectBtnChangeListener (val) {
+    onRangeSelectBtnChangeListener () {
       let _this = this
       _this.dateRangeSelected = ''
       _this.singleDateSelect = ''
-      console.log(_this.colNameMap)
+      _this.clearAllDrawings()
       if (_this.colNameMap.size === 0) {
-        console.log(1)
         const api = 'data/origin/header'
         this.$axios
           .post(api, {})
@@ -260,8 +262,8 @@ export default {
     },
     onSingleDateDisplayModeChangeListener () {
       let _this = this
+      _this.clearAllDrawings()
       if (_this.singleDateColNameMap.size === 0) {
-        console.log(1)
         const api = 'data/origin/single-day-entry'
         this.$axios
           .post(api, {})
@@ -278,7 +280,6 @@ export default {
             })
           })
       }
-      _this.clearAllDrawings()
     },
     searchForData () {
       const _this = this
@@ -343,6 +344,8 @@ export default {
         .then(successResponse => {
           // console.log(successResponse)
           if (_this.displayModeSelected === '按时间段显示') {
+            _this.stackedLineChartShown = true
+            _this.singleDayLineChartShown = false
             this.$nextTick(() => {
               this.drawRangeLineChart(successResponse)
               _this.stackedLineChartExist = true
@@ -350,14 +353,30 @@ export default {
           } else {
             const data = successResponse.data
             if (_this.singleDateDisplayModeSelected === '单一数据垂直分布') {
+              _this.stackedLineChartShown = false
+              _this.singleDayLineChartShown = true
               this.$nextTick(() => {
                 this.drawSingleDayLineChart(successResponse)
                 _this.singleDayLineChartExist = true
               })
             } else {
-              _this.tableHeader = data.cols_eng
-              _this.colNameMap = data.map
-              _this.tableData = data.data
+              if (data.code === -1) {
+                this.$notify({
+                  title: '结果出错',
+                  message: successResponse.data.msg,
+                  type: 'warning'
+                })
+              } else {
+                this.$notify({
+                  title: '查询成功',
+                  message: '结果已整理并返回',
+                  type: 'success'
+                })
+                _this.tableHeader = data.cols_eng
+                _this.colNameMap = data.map
+                _this.tableData = data.data
+                console.log(_this.tableData)
+              }
             }
           }
           _this.loading = false
@@ -508,10 +527,12 @@ export default {
     clearAllDrawings () {
       const _this = this
       if (_this.stackedLineChartExist) {
+        // let lChart = _this.$echarts.getInstanceByDom(document.getElementById('stackedLineChart'))
         let lChart = this.$echarts.init(document.getElementById('stackedLineChart'))
         lChart.clear()
       }
       if (_this.singleDayLineChartExist) {
+        // let lChart = _this.$echarts.getInstanceByDom(document.getElementById('singleDayLineChart'))
         let lChart = this.$echarts.init(document.getElementById('singleDayLineChart'))
         lChart.clear()
       }
@@ -635,7 +656,7 @@ body > .el-container {
 }
 
 .result-table {
-  padding: 20px 0px 20px 20px;
+  padding: 20px 0 20px 20px;
 }
 
 // 不显示滚动条

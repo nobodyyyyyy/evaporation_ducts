@@ -252,23 +252,24 @@ class HeightCal:
                     print('single_station_batch_cal_and_record_all_models... '
                           'error for file: {}\n Info: {}'.format(file, err))
                     cur_res.append(None)
-            print('single_station_batch_cal_and_record_all_models... '
-                  'appending {}'.format(cur_res))
+            # print('single_station_batch_cal_and_record_all_models... '
+            #       'appending {}'.format(cur_res))
             res.append(cur_res)
 
         wb, ws, output_name = DataUtils.excel_writer_prepare(header=header, output_name=output_name)
-
+        print('single_station_batch_cal_and_record_all_models... Finishing {}'.format(output_name))
         for l in res:
             ws.append(l)
         wb.save(filename=output_name)
 
-    def stations_batch_cal_and_record_all_models(self, root_dir, dest_dir='./selected_stations/'):
+    def stations_batch_cal_and_record_all_models(self, root_dir, dest_dir='./selected_stations/', limited=True):
         _files = DataUtils.get_all_file_names(root_dir)
         os.makedirs(dest_dir, exist_ok=True)
         for station_name in _files:
-            if station_name not in SoundingDataProcess.SELECTED_ID:
-                # todo 加限制。
-                continue
+            if limited:
+                if station_name not in SoundingDataProcess.SELECTED_ID:
+                    # todo 加限制。
+                    continue
             station_path = root_dir + '/' + station_name
             station = self.station_info[station_name]
             self.single_station_batch_cal_and_record_all_models(data_dir=station_path, lan=station.lat, lng=station.lon,
@@ -546,5 +547,7 @@ if __name__ == '__main__':
     # c.cal_real_height('../data/sounding_processed_hgt/stn_54511/stn_54511_2020-01-01_00UTC.npy')
     # c.single_station_batch_cal_real_height('../data/test_2022_12_02/sounding_data/stn_59758_processed')
     # c.stations_batch_cal_and_record_all_models('../data/sounding_processed')
-    c.stations_batch_cal_real_height('../data/sounding_processed_hgt')
+    # c.stations_batch_cal_real_height('../data/sounding_processed_hgt')
+
+    c.stations_batch_cal_and_record_all_models('../data/all_sounding_processed', dest_dir='../data/all_sounding_hgt/', limited=False)
     pass

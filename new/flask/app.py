@@ -1,12 +1,13 @@
 from flask import Flask, jsonify, request
 
 from new.flask.SupportedSingletons import SupportedSingletons
-from testapi import account_api
-from api_analysis_data_view import data_view_api
-from api_origin_data_view import origin_data_view_api
-from api_duct_height import duct_height_api
 
 from flask_cors import *
+
+from new.flask.api_analysis_data_view import data_view_api
+from new.flask.api_duct_height import duct_height_api
+from new.flask.api_origin_data_view import origin_data_view_api
+from new.flask.testapi import account_api
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)

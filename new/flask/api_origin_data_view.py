@@ -5,7 +5,6 @@ from flask import request, Blueprint
 import json
 import numpy as np
 
-from new.Util.TimeUtil import TimeUtil
 from new.flask.SupportedSingletons import SupportedSingletons
 
 origin_data_view_api = Blueprint('originDataView', __name__)
@@ -123,7 +122,14 @@ def fetch_daily():
     date = data['date']
     _id = data['id']
     file = modules.dataUtil.get_origin_file_address(_id, date, prefix='../data')
-    dataset = np.load(file, allow_pickle=True)
+    try:
+        dataset = np.load(file, allow_pickle=True)
+    except Exception as e:
+        print('Cannot fetch file {}'.format(file))
+        return json.dumps({
+            'code': -1,
+            'msg': '当天探空数据缺失，请更换日期'
+        })
     return json.dumps({
         'code': 0,
         'cols_eng': keys,

@@ -33,6 +33,11 @@ class TimeUtil:
         return round(time.time() * 1000)
 
     @staticmethod
+    def current_time_str(format_='%Y-%m-%d %H:%M:%S'):
+        ret = time.strftime(format_, time.localtime(int(time.time())))
+        return ret
+
+    @staticmethod
     def to_time_millis(year_, month_, day_, hr_, min_, sec_):
         dt = datetime.datetime(year_, month_, day_, hr_, min_, sec_)
         return int(time.mktime(dt.timetuple()))
@@ -42,6 +47,10 @@ class TimeUtil:
         from datetime import datetime
         tmp = datetime.strptime(time.strftime(format_, time.localtime(ts)), format_)
         return datetime.date(tmp)
+
+    @staticmethod
+    def str_to_timestamp(date_str, format_="%Y-%m-%d"):
+        return int(time.mktime(time.strptime(date_str, format_))) * 1000
 
     @staticmethod
     def time_millis_2_nc_timestamp(time_millis):

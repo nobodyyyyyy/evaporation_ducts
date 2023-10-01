@@ -5,6 +5,9 @@ import Login from '../components/Login'
 import Home from '../components/Home'
 import AnalysisDataView from '../components/dataview/AnalysisDataView.vue'
 import OriginDataView from '../components/dataview/OriginDataView.vue'
+import DuctPredictView from '../components/duct/DuctPredict.vue'
+import DuctCalView from '../components/duct/DuctCal.vue'
+import DuctView from '../components/duct/DuctView.vue'
 import Main from '../components/Main.vue'
 
 Vue.use(Router)
@@ -43,6 +46,21 @@ export default new Router({
           path: '/OriginDataView',
           name: 'OriginDataView',
           component: OriginDataView
+        },
+        {
+          path: '/DuctPredictView',
+          name: 'DuctPredictView',
+          component: DuctPredictView
+        },
+        {
+          path: '/DuctCalView',
+          name: 'DuctCalView',
+          component: DuctCalView
+        },
+        {
+          path: '/DuctView',
+          name: 'DuctView',
+          component: DuctView
         }
       ]
     },

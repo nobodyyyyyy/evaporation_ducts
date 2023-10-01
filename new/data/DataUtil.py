@@ -103,6 +103,16 @@ class DataUtils:
         return f'{prefix}/all_sounding_processed/{station_id}/{station_id}_{date}_00UTC.npy'
 
     @staticmethod
+    def get_duct_info_file_address(station_id, prefix="../height_model"):
+        """
+        拿波导高度资料位置
+        :param station_id:
+        :param prefix:
+        :return:
+        """
+        return f'{prefix}/merged/{station_id}.xlsx'
+
+    @staticmethod
     def get_origin_file_addresses(station_id, data_from, date_to, prefix="."):
         """
         拿探空资料位置集合【顺序】

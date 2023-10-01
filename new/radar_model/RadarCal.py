@@ -9,8 +9,8 @@ from new.Util.MathUtil import MathUtil
 from new.data.DataUtil import DataUtils
 # from data import SP
 from new.height_model.HeightCal import HeightCal
-from new.radar_model import SP
-from new.radar_model import newspe
+# from new.radar_model import SP
+# from new.radar_model import newspe
 # from data import SPEE
 
 

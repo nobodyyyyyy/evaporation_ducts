@@ -26,8 +26,9 @@
         <i class="el-icon-data-line"></i>
         <span>大气波导</span>
       </template>
-      <el-menu-item index="OriginDataView">波导计算</el-menu-item>
-      <el-menu-item index="AnalysisDataView">波导预测</el-menu-item>
+      <el-menu-item index="DuctCalView">波导计算</el-menu-item>
+      <el-menu-item index="DuctView">波导展示</el-menu-item>
+      <el-menu-item index="DuctPredictView">波导预测</el-menu-item>
     </el-submenu>
     <el-menu-item index="/admin" :key="4">
       <i class="el-icon-stopwatch"></i>
