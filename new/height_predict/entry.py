@@ -27,14 +27,27 @@ class PredictModel:
     SEED = 1
 
     MODEL_HA = 'HA'
-    MODEL_SVR = 'svr'
-    MODEL_KNN = 'knn'
-    MODEL_DECISION_TREE = 'decision_tree'
-    MODEL_RF = 'random_forest'
+    MODEL_SVR = 'SVR'
+    MODEL_KNN = 'KNN'
+    MODEL_DECISION_TREE = 'DT'
+    MODEL_RF = 'RF'
     MODEL_GBRT = 'GBRT'
-    MODEL_LSTM = 'lstm'
-    MODEL_RNN = 'rnn'
-    MODEL_GRU = 'gru'
+    MODEL_LSTM = 'LSTM(RNN)'
+    MODEL_RNN = 'rnn(THERE_IS_NO_SUCH_METHOD)'
+    MODEL_GRU = 'GRU(RNN)'
+
+    FEATURE_NPS = 7
+    FEATURE_BABIN = 8
+    FEATURE_LIULI = 9
+    FEATURE_PJ = 10
+    FEATURE_WEIZHESHELV = 11
+
+    FEATURE_COL_MAP = {
+        'nps': FEATURE_NPS,
+        'babin': FEATURE_BABIN,
+        'liuli': FEATURE_LIULI,
+        'pj': FEATURE_PJ,
+    }
 
     MATHS = [MODEL_HA]
     ML = [MODEL_SVR, MODEL_KNN, MODEL_DECISION_TREE, MODEL_RF, MODEL_GBRT]
@@ -43,7 +56,7 @@ class PredictModel:
     DATA_SPLIT_CONDITION = {MODEL_LSTM: DataSet.MODEL_LSTM, MODEL_RNN: DataSet.MODEL_RNN}
 
     def __init__(self, station_num=1, source='../height_model/merged/stn_59758.xlsx',
-                 start_date='1/1/2020', end_date='12/31/2021'):
+                 start_date='2020-01-01', end_date='2021-12-31', feature_name='nps'):
         self.station_num = station_num
         self.entries = {self.MODEL_LSTM: LSTMnetwork(input_size=1, hidden_size=100, output_size=1),
                         self.MODEL_RNN: RNN(input_size=1, hidden_size=8, num_layers=1, output_size=1),
@@ -54,7 +67,8 @@ class PredictModel:
                         self.MODEL_RF: RandomForestRegressor(random_state=PredictModel.SEED),
                         self.MODEL_GBRT: GradientBoostingRegressor(random_state=PredictModel.SEED),
                         self.MODEL_HA: HA()}
-        self.dataset = DataSet(source=source, init_feature=True, start_date=start_date, end_date=end_date)
+        self.dataset = DataSet(source=source, init_feature=True,
+                               start_date=start_date, end_date=end_date, col=self.FEATURE_COL_MAP[feature_name])
 
         try:
             torch.manual_seed(PredictModel.SEED)
@@ -97,14 +111,14 @@ class PredictModel:
         elif model_name == self.MODEL_GRU:
             self.entries[self.MODEL_GRU] = GRU(feature_size=1, hidden_size=8, output_size=1)
 
-    def inner_train_maths(self, model, model_name: str, train_ratio=0.9):
+    def inner_train_maths(self, model, model_name: str, train_ratio=0.9, web_split=False):
         mae, rmse, mape = model.fit_predict(self.dataset, train_ratio=train_ratio)
         print('inner_train_maths... Model: {} results:'.format(model_name))
         print('mae: {:.4f}, rmse: {:.4f}, mape: {:.4f}'.format(mae, rmse, mape))
         return mae, rmse, mape
 
     def inner_train_ml(self, model, model_name: str, input_window=6, train_ratio=0.9, step=1, single_step=False,
-                       pso_optimize=False):
+                       pso_optimize=False, web_split=False):
         maes, rmses, mapes, predicts = [], [], [], []
 
         if single_step:
@@ -115,11 +129,11 @@ class PredictModel:
         for stp in steps:
             x_train, y_train, x_val, y_val = self.dataset.split(self.dataset.data, train_ratio, 1 - train_ratio,
                                                                 input_window=input_window, output_window=1,
-                                                                machine_learning=True, step=stp)
+                                                                machine_learning=True, step=stp, web_split=web_split)
 
             if pso_optimize:
                 pso = PSO(model_name=model_name, seed=self.SEED)
-                pso_model = pso.run(x_train, y_train, x_val, y_val)
+                model = pso.run(x_train, y_train, x_val, y_val)
                 self.entries[model_name] = model
 
             model.fit(x_train, y_train)
@@ -152,11 +166,12 @@ class PredictModel:
 
     @DeprecationWarning
     def old_inner_train_lstm(self, model=None, model_name='', epoch=1000,
-                             input_window=6, output_window=1, train_ratio=0.9):
+                             input_window=6, output_window=1, train_ratio=0.9, web_split=False):
         split_condition = self.DATA_SPLIT_CONDITION[self.MODEL_LSTM]
         x_train, y_train, x_val, y_val = self.dataset.split(self.dataset.data, train_ratio, 1 - train_ratio,
                                                             input_window=input_window, output_window=output_window,
-                                                            machine_learning=False, specify_model=split_condition)
+                                                            machine_learning=False, specify_model=split_condition,
+                                                            web_split=web_split)
 
         train_data = Data.TensorDataset(x_train, y_train)
         test_data = Data.TensorDataset(x_val, y_val)
@@ -222,13 +237,13 @@ class PredictModel:
             return mae, rmse, mape, _predicts[:len(y_val)]
 
     def inner_train_lstm(self, model=None, model_name='', epoch=1000,
-                         input_window=6, output_window=1, train_ratio=0.9):
+                         input_window=6, output_window=1, train_ratio=0.9, web_split=False):
         model.train()
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
         x_train, y_train, x_val, y_val = self.dataset.split(self.dataset.data, train_ratio, 1 - train_ratio,
                                                             input_window=input_window, output_window=output_window,
-                                                            machine_learning=False)
+                                                            machine_learning=False, web_split=web_split)
         y_train = y_train.squeeze(dim=-1)
         y_val = y_val.squeeze(dim=-1)
         train_len = x_train.shape[0]
@@ -264,21 +279,20 @@ class PredictModel:
         return mae, rmse, mape, _predicts
 
     def inner_train_gru(self, model=None, model_name='', epoch=1000,
-                        input_window=6, output_window=1, train_ratio=0.9, batch_size=24):
+                        input_window=6, output_window=1, train_ratio=0.9, batch_size=24, web_split=False):
 
         model.train()
         loss_function = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
         x_train, y_train, x_val, y_val = self.dataset.split(self.dataset.data, train_ratio, 1 - train_ratio,
                                                             input_window=input_window, output_window=output_window,
-                                                            machine_learning=False)
+                                                            machine_learning=False, web_split=web_split)
         # train_data = TensorDataset(x_train, y_train)
         # test_data = TensorDataset(x_val, y_val)
         # train_loader = torch.utils.data.DataLoader(train_data, batch_size, False)
         # test_loader = torch.utils.data.DataLoader(test_data, batch_size, False)
         for e in range(epoch):
             model.train()
-            running_loss = 0
             loss_arr = []
             # train_bar = tqdm(train_loader)  # 形成进度条
             for _ in range(x_train.shape[0]):
@@ -314,7 +328,7 @@ class PredictModel:
         return mae, rmse, mape, _predicts
 
     def predict(self, select_model=MODEL_LSTM, epoch=1000, input_window=6, output_window=1, with_result=False,
-                train_ratio=0.9, step=1, single_step=False, pso_optimize=False):
+                train_ratio=0.9, step=1, single_step=False, pso_optimize=False, web_split=False):
         if select_model not in self.entries.keys():
             print('predict... {} not supported'.format(select_model))
         mae = rmse = mape = -1
@@ -327,7 +341,8 @@ class PredictModel:
             mae, rmse, mape, predicts = self.inner_train_lstm(self.entries[select_model], select_model, epoch=epoch,
                                                               input_window=input_window,
                                                               output_window=output_window,
-                                                              train_ratio=train_ratio)
+                                                              train_ratio=train_ratio,
+                                                              web_split=web_split)
         elif select_model == self.MODEL_RNN:
             print('not supported')
             pass
@@ -335,14 +350,17 @@ class PredictModel:
             mae, rmse, mape, predicts = self.inner_train_gru(self.entries[select_model], select_model, epoch=epoch,
                                                              input_window=input_window,
                                                              output_window=output_window,
-                                                             train_ratio=train_ratio)
+                                                             train_ratio=train_ratio,
+                                                             web_split=web_split)
         elif select_model in self.ML:
             mae, rmse, mape, predicts = self.inner_train_ml(self.entries[select_model], select_model,
                                                             input_window=input_window, train_ratio=train_ratio,
                                                             step=step, single_step=single_step,
-                                                            pso_optimize=pso_optimize)
+                                                            pso_optimize=pso_optimize,
+                                                            web_split=web_split)
         elif select_model in self.MATHS:
-            mae, rmse, mape = self.inner_train_maths(self.entries[select_model], select_model, train_ratio=train_ratio)
+            mae, rmse, mape = self.inner_train_maths(self.entries[select_model], select_model, train_ratio=train_ratio,
+                                                     web_split=web_split)
         else:
             print('predict... Model unclassified.')
         if with_result:
@@ -428,8 +446,8 @@ class PredictModel:
 
 
 if __name__ == '__main__':
-    pm = PredictModel()
-    pm.predict(select_model=PredictModel.MODEL_GRU, epoch=200)
+    pm = PredictModel(start_date='2020-01-03', end_date='2020-03-06')
+    pm.predict(select_model=PredictModel.MODEL_KNN, epoch=20, web_split=True)
     # pm.predict(select_model=PredictModel.MODEL_SVR)
     # pm.predict(select_model=PredictModel.MODEL_KNN)
     # pm.predict(select_model=PredictModel.MODEL_DECISION_TREE)

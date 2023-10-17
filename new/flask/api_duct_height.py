@@ -22,9 +22,13 @@ API_INIT_ENTRY = prefix + '/init_entry'
 API_GET_HEIGHT_TABLE = prefix + '/fetch-height-raw'
 API_GET_HEIGHT_GRAPH = prefix + '/fetch-height-graph'
 
+# header_values = ['日期', '气温(°C)', '相对湿度(%)', '海温(°C)', '风速(m/s)', '压强(hPa)', '测量高度(m)',
+#                  'nps(m)', 'babin(m)', 'liuli2.0(m)', 'pj(m)']
+# header_keys = ['date', 'temp', 'relh', 'sst', 'speed', 'pressure', 'height', 'nps', 'babin', 'liuli2.0', 'pj']
+
 header_values = ['日期', '气温(°C)', '相对湿度(%)', '海温(°C)', '风速(m/s)', '压强(hPa)', '测量高度(m)',
-                 'nps(m)', 'babin(m)', 'liuli2.0(m)', 'pj(m)']
-header_keys = ['date', 'temp', 'relh', 'sst', 'speed', 'pressure', 'height', 'nps', 'babin', 'liuli2.0', 'pj']
+                 'nps(m)', 'byc(m)', 'mgb(m)', 'pj(m)']
+header_keys = ['date', 'temp', 'relh', 'sst', 'speed', 'pressure', 'height', 'nps', 'byc', 'mgb', 'pj']
 
 excel_header = ['日期', '气温', '相对湿度', '海温', '风速', '压强', '测量高度',
                 'nps', 'babin', 'liuli2.0', 'pj']
@@ -104,6 +108,7 @@ def init_entry():
         'lngs': lngs,
         'date_from': '2020-01-01',
         'date_to': '2021-12-31',
+        'predict_date_to': '2021-12-28',
         'map': col_map
     })
 
@@ -120,6 +125,12 @@ def cal_height():
     sst = float(data['sst'])  # 海面温度
     model_name = data['model']
     model = models[model_entry[model_name]]
+
+    # 名称更变
+    if model_name == 'babin':
+        model_name = 'byc'
+    if model_name == 'liuli':
+        model_name = 'mgb'
     try:
         res = model(t, eh, sst, u, p, h)
         res = str(round(res, 2))
@@ -218,6 +229,8 @@ def get_graph_duct_height_data():
         ret.append(ret)
 
     ret_series = []
+    # 名称更变
+    header = ['nps', 'byc', 'mgb', 'pj']
     for _ in range(len(header)):
         ret_series.append({
             'name': header[_],

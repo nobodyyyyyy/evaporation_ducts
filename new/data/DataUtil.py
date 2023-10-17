@@ -679,6 +679,8 @@ class DataUtils:
             print('get_support_data_single_date... type_ is not supported')
             return None
 
+        # 第一维度翻转，不然图像会上下颠倒
+        val = np.flip(val, axis=0)
         return val
 
     @staticmethod

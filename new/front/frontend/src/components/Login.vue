@@ -73,10 +73,10 @@ export default {
       //   })
       //   .catch(failResponse => {
       //   })
-      this.$axios.post('/login').then(res => {
-        console.log(res.data)
-        alert(res.data['name'])
-      })
+      // this.$axios.post('/login').then(res => {
+      //   console.log(res.data)
+      //   alert(res.data['name'])
+      // })
       const path = this.$route.query.redirect
       this.$router.replace({path: path === '/' || path === undefined ? '/Main' : path})
     }

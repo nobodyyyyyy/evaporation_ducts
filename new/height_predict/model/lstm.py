@@ -144,14 +144,15 @@ class GRU(nn.Module):
         batch_size = x.shape[0]  # 获取批次大小
 
         # 初始化隐层状态
-        if hidden is None:
-            # h_0 = x.data.new(self.num_layers, batch_size, self.hidden_size).fill_(0).float()
-            # h_0 = torch.empty(self.num_layers, self.feature_size, self.output_size, dtype=torch.float)
-            h_0 = torch.empty(self.num_layers, batch_size, self.hidden_size, dtype=torch.float)
-        else:
-            h_0 = hidden
+        # if hidden is None:
+        #     # h_0 = x.data.new(self.num_layers, batch_size, self.hidden_size).fill_(0).float()
+        #     # h_0 = torch.empty(self.num_layers, self.feature_size, self.output_size, dtype=torch.float)
+        #     h_0 = torch.empty(self.num_layers, batch_size, self.hidden_size, dtype=torch.float)
+        # else:
+        #     h_0 = hidden
 
-        out, h_0 = self.gru(x.view(len(x), 1, -1), h_0)
+        # out, h_0 = self.gru(x.view(len(x), 1, -1), h_0)
+        out, _ = self.gru(x.view(len(x), 1, -1))
         pred = self.fc(out.view(len(x), -1))
         return pred[-1]
 

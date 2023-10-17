@@ -14,7 +14,7 @@ class SupportedSingletons:
     def __init__(self):
         self.heightCal = HeightCal('../data/sounding')
         self.dataUtil = DataUtils()
-        self.heightPredict = PredictModel()
+        # self.heightPredict = PredictModel()
         self.radarCal = RadarCal()
 
     def height_cal(self):
@@ -23,8 +23,8 @@ class SupportedSingletons:
     def data_util(self):
         return self.dataUtil
 
-    def height_predict(self):
-        return self.heightPredict
+    # def height_predict(self):
+    #     return self.heightPredict
 
     def radar_cal(self):
         return self.radarCal

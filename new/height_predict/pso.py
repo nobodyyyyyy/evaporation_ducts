@@ -10,12 +10,12 @@ import pyswarms as ps
 
 class PSO:
 
-    MODEL_SVR = 'svr'
-    MODEL_KNN = 'knn'
-    MODEL_DECISION_TREE = 'decision_tree'
-    MODEL_RF = 'random_forest'
+    MODEL_SVR = 'SVR'
+    MODEL_KNN = 'KNN'
+    MODEL_DECISION_TREE = 'DT'
+    MODEL_RF = 'RF'
     MODEL_GBRT = 'GBRT'
-    MODEL_LSTM = 'lstm'
+    MODEL_LSTM = 'LSTM'
 
     SUPPORTED_MODELS = [MODEL_SVR, MODEL_KNN, MODEL_DECISION_TREE, MODEL_RF, MODEL_GBRT]
 
