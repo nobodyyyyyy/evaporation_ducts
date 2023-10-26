@@ -111,14 +111,14 @@ class PredictModel:
         elif model_name == self.MODEL_GRU:
             self.entries[self.MODEL_GRU] = GRU(feature_size=1, hidden_size=8, output_size=1)
 
-    def inner_train_maths(self, model, model_name: str, train_ratio=0.9, web_split=False):
+    def inner_train_maths(self, model, model_name: str, train_ratio=0.9, web_split=False, web_split_len=2):
         mae, rmse, mape = model.fit_predict(self.dataset, train_ratio=train_ratio)
         print('inner_train_maths... Model: {} results:'.format(model_name))
         print('mae: {:.4f}, rmse: {:.4f}, mape: {:.4f}'.format(mae, rmse, mape))
         return mae, rmse, mape
 
     def inner_train_ml(self, model, model_name: str, input_window=6, train_ratio=0.9, step=1, single_step=False,
-                       pso_optimize=False, web_split=False):
+                       pso_optimize=False, web_split=False, web_split_len=2):
         maes, rmses, mapes, predicts = [], [], [], []
 
         if single_step:
@@ -129,7 +129,8 @@ class PredictModel:
         for stp in steps:
             x_train, y_train, x_val, y_val = self.dataset.split(self.dataset.data, train_ratio, 1 - train_ratio,
                                                                 input_window=input_window, output_window=1,
-                                                                machine_learning=True, step=stp, web_split=web_split)
+                                                                machine_learning=True, step=stp, web_split=web_split,
+                                                                web_split_len=web_split_len)
 
             if pso_optimize:
                 pso = PSO(model_name=model_name, seed=self.SEED)
@@ -237,13 +238,13 @@ class PredictModel:
             return mae, rmse, mape, _predicts[:len(y_val)]
 
     def inner_train_lstm(self, model=None, model_name='', epoch=1000,
-                         input_window=6, output_window=1, train_ratio=0.9, web_split=False):
+                         input_window=6, output_window=1, train_ratio=0.9, web_split=False, web_split_len=2):
         model.train()
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
         x_train, y_train, x_val, y_val = self.dataset.split(self.dataset.data, train_ratio, 1 - train_ratio,
                                                             input_window=input_window, output_window=output_window,
-                                                            machine_learning=False, web_split=web_split)
+                                                            machine_learning=False, web_split=web_split, web_split_len=web_split_len)
         y_train = y_train.squeeze(dim=-1)
         y_val = y_val.squeeze(dim=-1)
         train_len = x_train.shape[0]
@@ -279,14 +280,14 @@ class PredictModel:
         return mae, rmse, mape, _predicts
 
     def inner_train_gru(self, model=None, model_name='', epoch=1000,
-                        input_window=6, output_window=1, train_ratio=0.9, batch_size=24, web_split=False):
+                        input_window=6, output_window=1, train_ratio=0.9, batch_size=24, web_split=False, web_split_len=2):
 
         model.train()
         loss_function = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
         x_train, y_train, x_val, y_val = self.dataset.split(self.dataset.data, train_ratio, 1 - train_ratio,
                                                             input_window=input_window, output_window=output_window,
-                                                            machine_learning=False, web_split=web_split)
+                                                            machine_learning=False, web_split=web_split, web_split_len=web_split_len)
         # train_data = TensorDataset(x_train, y_train)
         # test_data = TensorDataset(x_val, y_val)
         # train_loader = torch.utils.data.DataLoader(train_data, batch_size, False)
@@ -328,7 +329,7 @@ class PredictModel:
         return mae, rmse, mape, _predicts
 
     def predict(self, select_model=MODEL_LSTM, epoch=1000, input_window=6, output_window=1, with_result=False,
-                train_ratio=0.9, step=1, single_step=False, pso_optimize=False, web_split=False):
+                train_ratio=0.9, step=1, single_step=False, pso_optimize=False, web_split=False, web_split_len=2):
         if select_model not in self.entries.keys():
             print('predict... {} not supported'.format(select_model))
         mae = rmse = mape = -1
@@ -342,7 +343,8 @@ class PredictModel:
                                                               input_window=input_window,
                                                               output_window=output_window,
                                                               train_ratio=train_ratio,
-                                                              web_split=web_split)
+                                                              web_split=web_split,
+                                                              web_split_len=web_split_len)
         elif select_model == self.MODEL_RNN:
             print('not supported')
             pass
@@ -351,16 +353,19 @@ class PredictModel:
                                                              input_window=input_window,
                                                              output_window=output_window,
                                                              train_ratio=train_ratio,
-                                                             web_split=web_split)
+                                                             web_split=web_split,
+                                                             web_split_len=web_split_len)
         elif select_model in self.ML:
             mae, rmse, mape, predicts = self.inner_train_ml(self.entries[select_model], select_model,
                                                             input_window=input_window, train_ratio=train_ratio,
                                                             step=step, single_step=single_step,
                                                             pso_optimize=pso_optimize,
-                                                            web_split=web_split)
+                                                            web_split=web_split,
+                                                            web_split_len=web_split_len)
         elif select_model in self.MATHS:
             mae, rmse, mape = self.inner_train_maths(self.entries[select_model], select_model, train_ratio=train_ratio,
-                                                     web_split=web_split)
+                                                     web_split=web_split,
+                                                     web_split_len=web_split_len)
         else:
             print('predict... Model unclassified.')
         if with_result:

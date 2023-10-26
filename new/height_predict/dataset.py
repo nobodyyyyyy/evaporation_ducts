@@ -84,7 +84,7 @@ class DataSet:
         return self.inverse_transform(self.data)
 
     def split(self, input_data, ratio_train=0.8, ratio_val=0.2, ratio_test=0.0, input_window=12, output_window=3,
-              machine_learning=False, step=1, specify_model=MODEL_NOT_SPECIFY, web_split=False):
+              machine_learning=False, step=1, specify_model=MODEL_NOT_SPECIFY, web_split=False, web_split_len=2):
         if self.ratio == ratio_train and machine_learning == self.machine_learning and step == self.step \
                 and specify_model == self.specific_model:
             return self.x_train, self.y_train, self.x_val, self.y_val
@@ -93,11 +93,12 @@ class DataSet:
                                output_window=output_window,
                                machine_learning=machine_learning, step=step,
                                specify_model=specify_model,
-                               web_split=web_split)
+                               web_split=web_split,
+                               web_split_len=web_split_len)
 
     def _split(self, input_data, ratio_train=0.8, ratio_val=0.2, ratio_test=0.0,
                input_window=12, output_window=3,
-               machine_learning=False, step=1, specify_model=MODEL_NOT_SPECIFY, web_split=False):
+               machine_learning=False, step=1, specify_model=MODEL_NOT_SPECIFY, web_split=False, web_split_len=2):
         """
         训练测试划分
         :param input_data:
@@ -138,6 +139,7 @@ class DataSet:
                 self.y_val.append(input_data[_ + input_window + step - 1: _ + input_window + step - 1 + output_window])
         else:
             # 网站训练只拿 48 小时去测试
+            # 需求更新，支持用户选择天数，24 ~ 480 小时
             x_train = []
             y_train = []
             for _ in range(0, _len - input_window - step + 1):
@@ -145,10 +147,10 @@ class DataSet:
                 y_train.append(input_data[_ + input_window + step - 1: _ + input_window + step - 1 + output_window])
             x_train = np.array(_flatten(x_train))
             y_train = np.array(_flatten(y_train))
-            self.x_train = x_train[:-2]
-            self.y_train = y_train[:-2]
-            self.x_val = x_train[-2:]
-            self.y_val = y_train[-2:]
+            self.x_train = x_train[:-web_split_len]
+            self.y_train = y_train[:-web_split_len]
+            self.x_val = x_train[-web_split_len:]
+            self.y_val = y_train[-web_split_len:]
 
         if machine_learning:
             self.x_train, self.y_train, self.x_val, self.y_val = np.squeeze(self.x_train), \

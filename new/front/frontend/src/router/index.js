@@ -8,6 +8,8 @@ import OriginDataView from '../components/dataview/OriginDataView.vue'
 import DuctPredictView from '../components/duct/DuctPredict.vue'
 import DuctCalView from '../components/duct/DuctCal.vue'
 import DuctView from '../components/duct/DuctView.vue'
+import LossView from '../components/radar/LossView.vue'
+import LossP from '../components/radar/LossP.vue'
 import Main from '../components/Main.vue'
 
 Vue.use(Router)
@@ -61,6 +63,16 @@ export default new Router({
           path: '/DuctView',
           name: 'DuctView',
           component: DuctView
+        },
+        {
+          path: '/LossView',
+          name: 'LossView',
+          component: LossView
+        },
+        {
+          path: '/LossP',
+          name: 'LossP',
+          component: LossP
         }
       ]
     },

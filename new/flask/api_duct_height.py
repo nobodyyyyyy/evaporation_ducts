@@ -108,7 +108,7 @@ def init_entry():
         'lngs': lngs,
         'date_from': '2020-01-01',
         'date_to': '2021-12-31',
-        'predict_date_to': '2021-12-28',
+        'predict_date_to': '2021-12-10',
         'map': col_map
     })
 

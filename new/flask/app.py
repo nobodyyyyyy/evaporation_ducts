@@ -7,6 +7,7 @@ from new.flask.api_duct_height import duct_height_api
 from new.flask.api_origin_data_view import origin_data_view_api
 from new.flask.testapi import account_api
 from new.flask.api_height_predict import height_predict_api
+from new.flask.api_radar import radar_api
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -18,6 +19,7 @@ app.register_blueprint(data_view_api)
 app.register_blueprint(origin_data_view_api)
 app.register_blueprint(duct_height_api)
 app.register_blueprint(height_predict_api)
+app.register_blueprint(radar_api)
 
 
 if __name__ == '__main__':

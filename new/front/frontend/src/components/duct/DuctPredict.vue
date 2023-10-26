@@ -95,6 +95,20 @@
             <span class="hint-text">训练时间需大于一个月</span>
           </div>
           <div class="search-row">
+            <span class="search-text">预测时间长度</span>
+            <el-select v-model="predictLen" placeholder="请选择预测时间长度" no-data-text="" filterable>
+              <el-option
+                style="width: 200px"
+                v-for="item in predictLenOptions"
+                :key="item"
+                :label="item"
+                :value="item">
+              </el-option>
+            </el-select>
+            <i class="el-icon-info select-icon"></i>
+            <span class="hint-text">预测时间长度越长，效果越差，建议选择未来48小时(2天)</span>
+          </div>
+          <div class="search-row">
             <el-button class="search-btn" round v-on:click="onPredictBtnClicked">训练模型</el-button>
             <el-button style="margin-left: 20px" icon="el-icon-setting" round v-on:click="dialogVisible = true" circle></el-button>
 
@@ -102,7 +116,7 @@
             <!--          <span class="hint-text">计算结果不会保存</span>-->
           </div>
         </div>
-        <el-dialog title="额外设置" :visible.sync="dialogVisible" width="40%" center>
+        <el-dialog title="额外设置" :visible.sync="dialogVisible" width="50%" center>
           <div class="dialog-search-row">
             <span class="search-text">粒子群调优</span>
             <el-switch
@@ -142,9 +156,10 @@
               <el-table-column prop="predict_model" label="波导预测模型"></el-table-column>
               <el-table-column prop="pso" label="粒子群调优"></el-table-column>
               <el-table-column prop="range" label="训练数据时间范围"></el-table-column>
-              <el-table-column prop="mae" label="48小时MAE"></el-table-column>
-              <el-table-column prop="rmse" label="48小时RMSE"></el-table-column>
-              <el-table-column prop="mape" label="48小时MAPE(%)"></el-table-column>
+              <el-table-column prop="output_len" label="预测时间长度"></el-table-column>
+              <el-table-column prop="mae" label="MAE"></el-table-column>
+              <el-table-column prop="rmse" label="RMSE"></el-table-column>
+              <el-table-column prop="mape" label="MAPE(%)"></el-table-column>
             </el-table>
           </template>
         </div>
@@ -197,6 +212,11 @@ export default {
           return time >= _this.dateTo || time <= _this.dateFrom
         }
       },
+      predictLen: '未来48小时(2天)',
+      predictLenOptions: ['未来24小时(1天)', '未来48小时(2天)', '未来72小时(3天)', '未来96小时(4天)', '未来120小时(5天)', '未来144小时(6天)',
+        '未来168小时(7天)', '未来192小时(8天)', '未来216小时(9天)', '未来240小时(10天)',
+        '未来264小时(11天)', '未来288小时(12天)', '未来312小时(13天)', '未来336小时(14天)', '未来360小时(15天)', '未来384小时(16天)',
+        '未来408小时(17天)', '未来432小时(18天)', '未来456小时(19天)', '未来480小时(20天)'],
       // 设置界面相关
       dialogVisible: false,
       epoch: 50,
@@ -262,8 +282,15 @@ export default {
         predict_model: _this.predictModelSelected,
         height_model: _this.modelSelect,
         epoch: _this.epoch,
-        window: _this.windowSize
+        window: _this.windowSize,
+        output_len: _this.predictLen
       }
+      const loading = this.$loading({
+        lock: true,
+        text: '模型训练中，请稍后……',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0,0,0,0.5)'
+      })
       this.$axios
         .post(api, data)
         .then(successResponse => {
@@ -293,6 +320,7 @@ export default {
             type: 'error'
           })
         })
+      loading.close()
     },
     resetEpoch () {
       let str = this.epoch

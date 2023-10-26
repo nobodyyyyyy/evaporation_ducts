@@ -30,16 +30,19 @@ def init_entry():
     height_model = data['height_model']
     epoch = data['epoch']
     input_window = data['window']
-
+    output_len = data['output_len']
+    predict_len = int(re.findall(r".*\((.*)天",output_len)[0])
+    print(predict_len)
+    predict_time = predict_len * 24 * 60 * 60
     # 拿文件名
     file_addr = modules.dataUtil.get_duct_info_file_address(station_id=_id, prefix='../height_model')
     date_f = str(TimeUtil.timestamp_to_datetime(date_from))
     train_date_t = str(TimeUtil.timestamp_to_datetime(date_to))
-    date_t = str(TimeUtil.timestamp_to_datetime(date_to + 48 * 60 * 60))  # 预测未来48小时
+    date_t = str(TimeUtil.timestamp_to_datetime(date_to + predict_time))  # 预测未来48小时
     model = PredictModel(station_num=1, source=file_addr, start_date=date_f, end_date=date_t, feature_name=height_model)
     mae, rmse, mape = model.predict(select_model=predict_model, epoch=epoch,
                                     input_window=input_window, output_window=1,
-                                    with_result=False, step=1, single_step=False, pso_optimize=pso, web_split=True)
+                                    with_result=False, step=1, single_step=False, pso_optimize=pso, web_split=True, web_split_len=predict_len)
     if height_model == 'babin':
         height_model = 'byc'
     if height_model == 'liuli':
@@ -59,6 +62,7 @@ def init_entry():
             'range': f'{date_f}~{train_date_t}',
             'mae': mae,
             'rmse': rmse,
-            'mape': mape
+            'mape': mape,
+            'output_len': output_len
         }
     })

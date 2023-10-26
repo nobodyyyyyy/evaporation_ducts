@@ -329,7 +329,7 @@ export default {
       this.$axios
         .post(api, data)
         .then(successResponse => {
-          // console.log(successResponse)
+          console.log(successResponse)
           if (_this.displayModeSelected === '按时间段显示') {
             _this.heatmapShown = false
             _this.lineChartShown = true
@@ -439,7 +439,10 @@ export default {
           bottom: '25%',
           precision: 5,
           itemWidth: '20',
-          itemHeight: hmChart.getWidth() - 400
+          itemHeight: hmChart.getWidth() - 400,
+          inRange: {
+            color: ['#438cf8', '#f8f3a3', '#ff0000'] // 修改热力图的颜色 淡蓝色=>深蓝色的过度
+          }
         },
         series: [
           {

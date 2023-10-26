@@ -9,9 +9,8 @@ from new.Util.MathUtil import MathUtil
 from new.data.DataUtil import DataUtils
 # from data import SP
 from new.height_model.HeightCal import HeightCal
-# from new.radar_model import SP
-# from new.radar_model import newspe
-# from data import SPEE
+from new.radar_model import SP
+from new.radar_model import newspe
 
 
 class RadarCal:
@@ -237,6 +236,18 @@ class RadarCal:
         return loss
 
     @staticmethod
+    def simple_get_l_single(eva_hgt, radar_feq, antenna_height):
+        """
+        知道波导高度直接调用这个方法
+        :param eva_hgt:
+        :param radar_feq:
+        :param antenna_height:
+        :return:
+        """
+        loss = newspe.spee(eva_hgt, radar_feq, antenna_height)
+        return loss
+
+    @staticmethod
     def get_Ts(f=8600, Pt=230, G=30, D0=60, Bn=769230, Ls=30, F0=5, sigma=20):
         # f:雷达频率(MHz)  [5600]
         # Pt:雷达峰值功率(KW) [论文写的是发射功率 Pt] [230]
@@ -272,6 +283,21 @@ class RadarCal:
         Ls <= Ts 即目标能够被检测到
         """
         return Ls <= Ts
+
+    @staticmethod
+    def get_detect_p(Pfa, sigma):
+        """
+        拿探测概率，
+        :param Pfa:  虚警概率
+        :param sigma: 探测截面面积
+        :return:
+        """
+        Pfa = float(Pfa)
+        sigma = float(sigma)
+        A = math.log10(0.62 / Pfa)
+        D0 = A * A / (2 * sigma * sigma)
+        res = 0.5 * math.erfc(math.sqrt(-math.log10(Pfa)) - math.sqrt(0.5 + D0))
+        return round(res, 4)
 
     @staticmethod
     def get_detected_field(Ls, Ts):

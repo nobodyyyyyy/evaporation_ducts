@@ -1,4 +1,4 @@
-import pandas as pd
+# import pandas as pd
 
 from new.data.DataUtil import DataUtils
 from new.height_model.HeightCal import HeightCal
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # b = SupportedSingletons()
     print(1)
 
-    a = pd.date_range(1695004304, 1696004304)
+    # a = pd.date_range(1695004304, 1696004304)
     print(2)
 
 # a[2].strftime('%Y-%m-%d')

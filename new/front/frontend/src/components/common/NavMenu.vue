@@ -30,10 +30,16 @@
       <el-menu-item index="DuctView">波导展示</el-menu-item>
       <el-menu-item index="DuctPredictView">波导预测</el-menu-item>
     </el-submenu>
-    <el-menu-item index="/admin" :key="4">
-      <i class="el-icon-stopwatch"></i>
-      <span>波导模拟</span>
-    </el-menu-item>
+    <el-submenu index="/radar" :key="4">
+      <template class="item-entry" slot="title">
+        <i class="el-icon-stopwatch"></i>
+        <span>波导模拟</span>
+      </template>
+      <el-menu-item index="LossView">损耗及盲区检测</el-menu-item>
+      <el-menu-item index="LossP">虚警率计算</el-menu-item>
+<!--      实际上是探测概率-->
+<!--      <el-menu-item index="BlindDetection">盲区检测</el-menu-item>-->
+    </el-submenu>
 <!--    <a href="#nowhere" style="color: #222;float: right;padding: 20px;">更多功能</a>-->
 <!--    <i class="el-icon-menu" style="float:right;font-size: 45px;color: #222;padding-top: 8px"></i>-->
 <!--    <span style="position: absolute;padding-top: 20px;right: 46%;font-size: 23px;font-weight: bold">短临预测蒸发波导软件</span>-->

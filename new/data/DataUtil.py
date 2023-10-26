@@ -242,7 +242,7 @@ class DataUtils:
         _min = 10000000
         _max = 0
         try:
-            lat_n = len(data)
+            lat_n = len(data)  # 其实还适用于不是经纬度为x、y轴的值
             lng_n = len(data[0])
         except Exception as e:
             print('DataUtil... gen_data_response_4_heatmap... Error {}'.format(e))
@@ -252,10 +252,13 @@ class DataUtils:
             _max = 0
         for i in range(0, lat_n):
             for j in range(0, lng_n):
-                ret.append([i, j, data[i][j]])
-                if data[i][j] != 0.:
-                    _max = max(_max, data[i][j])
-                    _min = min(_min, data[i][j])
+                ele = round(data[i][j], 2)
+                if ele == np.inf:
+                    ele = 0
+                ret.append([i, j, ele])
+                if ele != 0.:
+                    _max = max(_max, ele)
+                    _min = min(_min, ele)
         return ret, _max, _min
 
     @staticmethod
