@@ -1,10 +1,9 @@
 import os
-import re
 
 import numpy as np
 
-from new.Util import DuctHeightUtil
-from new.data.DataUtil import DataUtils
+from Util import DuctHeightUtil
+from data.DataUtil import DataUtils
 
 
 class SoundingDataProcess(DataUtils):

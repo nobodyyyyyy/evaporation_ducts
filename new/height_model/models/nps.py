@@ -3,7 +3,7 @@ from cmath import sqrt, log, exp
 
 import numpy as np
 
-from new.Util.DuctHeightUtil import R_S, qsee, psiu_nps, psit_nps
+from Util.DuctHeightUtil import R_S, qsee, psiu_nps, psit_nps
 
 
 def nps_duct_height(t, RH, ts, u, P, height=-1, stable_check=False):

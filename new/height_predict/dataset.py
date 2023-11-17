@@ -4,7 +4,7 @@ import torch
 from sklearn.preprocessing import MinMaxScaler
 from tkinter import _flatten
 
-from new.Util.TimeUtil import TimeUtil
+from Util.TimeUtil import TimeUtil
 
 
 class DataSet:
@@ -19,6 +19,7 @@ class DataSet:
         FEATURE_BABIN: 'babin',
         FEATURE_LIULI: 'liuli',
         FEATURE_PJ: 'pj',
+        FEATURE_WEIZHESHELV: 'wei'
     }
 
     MODEL_NOT_SPECIFY = 0

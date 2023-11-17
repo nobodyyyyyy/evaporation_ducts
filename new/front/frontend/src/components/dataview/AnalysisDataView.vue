@@ -51,7 +51,7 @@
             <span class="hint-text">数据类型即再分析资料的类别，例如海表温度、风速等</span>
           </div>
 
-          <div class="search-row" v-show="levelShown">
+          <div class="search-row" v-show="levelShown && displayModeSelected !== '垂直廓线显示'">
             <span class="search-text">标准大气 level </span>
             <template>
               <el-select v-model="levelSelected" placeholder="请选择" @change="typeSelectedChangeEvent"
@@ -87,7 +87,7 @@
                             :picker-options="dateOption"
                             :default-value="dateFrom"
                             value-format="timestamp"
-                            v-show="displayModeSelected === '按天显示'"/>
+                            v-show="displayModeSelected === '按天显示' || displayModeSelected === '垂直廓线显示'"/>
 <!--            周期显示选择时间段-->
             <el-date-picker
               v-show="displayModeSelected === '按时间段显示'"
@@ -105,13 +105,13 @@
           </div>
           <div class="search-row" style="display: flex; margin-top: 8px">
             <span class="search-text" v-show="displayModeSelected === '按天显示'">纬度区间</span>
-            <span class="search-text" v-show="displayModeSelected === '按时间段显示'">纬度选择</span>
+            <span class="search-text" v-show="displayModeSelected !== '按天显示'">纬度选择</span>
             <span class="latlng-hint-text">南纬90°</span>
             <template>
               <div class="latlng_slider" v-show="displayModeSelected === '按天显示'">
                 <el-slider v-model="latSelected" range :max="90" :min="-90"></el-slider>
               </div>
-              <div class="latlng_slider" v-show="displayModeSelected === '按时间段显示'">
+              <div class="latlng_slider" v-show="displayModeSelected !== '按天显示'">
                 <el-slider v-model="singleLatSelected" :max="90" :min="-90"></el-slider>
               </div>
             </template>
@@ -119,13 +119,13 @@
           </div>
           <div class="search-row" style="display: flex; margin-top: 8px">
             <span class="search-text" v-show="displayModeSelected === '按天显示'">经度区间</span>
-            <span class="search-text" v-show="displayModeSelected === '按时间段显示'">经度选择</span>
+            <span class="search-text" v-show="displayModeSelected !== '按天显示'">经度选择</span>
             <span class="latlng-hint-text">西经180°</span>
             <template>
               <div class="latlng_slider" v-show="displayModeSelected === '按天显示'">
                 <el-slider v-model="lngSelected" range :max="180" :min="-180"></el-slider>
               </div>
-              <div class="latlng_slider single" v-show="displayModeSelected === '按时间段显示'">
+              <div class="latlng_slider single" v-show="displayModeSelected !== '按天显示'">
                 <el-slider v-model="singleLngSelected" :max="180" :min="-180"></el-slider>
               </div>
             </template>
@@ -138,6 +138,7 @@
         <div class="display-box" v-show=resultShown v-loading="loading">
           <div id="heatmapChart" style='width: 1200px; height: 800px; overflow: auto; left: 50px' v-if="heatmapShown"></div>
           <div id="lineChart" style='width: 1200px; height: 800px; overflow: auto; left: 50px' v-if="lineChartShown"></div>
+          <div id="singleDayLineChart" style='width: 1200px; height: 800px; overflow: auto; left: 50px' v-if="singleDayLineChartShown"></div>
         </div>
       </el-main>
     </el-container>
@@ -156,10 +157,11 @@ export default {
       nameMapping: {},
       info: {},
       typeOptions: [],
+      tempTypeOptions: [],
       typeSelected: '',
       sourceOptions: [],
       sourceSelected: '',
-      displayModes: ['按天显示', '按时间段显示'],
+      displayModes: ['按天显示', '按时间段显示', '垂直廓线显示'],
       displayModeSelected: '按天显示',
       singleDateSelect: '',
       dateSelectPlaceHolder: '请先选择数据来源和类型',
@@ -178,15 +180,21 @@ export default {
       latSelected: [-45, 45],
       lngSelected: [-90, 90],
       levelOptions: [],
+      // 什么样的数据需要选择 level
       levelShownTypes: [],
+      levelShownOptions: [],
+      // --
       levelSelected: '',
       levelShown: false,
       resultShown: false,
       loading: false,
       heatmapShown: false,
+      heatMapExist: false,
       lineChartShown: false,
       lineChartExist: false,
-      heatMapExist: false
+      // 垂直廓线显示
+      singleDayLineChartShown: false,
+      singleDayLineChartExist: false
     }
   },
   mounted () {
@@ -202,6 +210,7 @@ export default {
           let mappingEN = resp.data.mapping_eng
           let mappingCN = resp.data.mapping_cn
           _this.typeOptions = []
+          _this.levelShownOptions = []
           for (let i = 0; i < mappingCN.length; ++i) {
             _this.nameMapping[mappingEN[i]] = mappingCN[i]
           }
@@ -246,6 +255,7 @@ export default {
       const _this = this
       const types = _this.info[val]['types']
       _this.typeOptions = []
+      _this.levelShownOptions = []
       _this.singleDateSelectPlaceHolder = '请先选择数据来源和类型'
       _this.singleDateSelect = ''
       _this.dateRangeSelected = ''
@@ -254,8 +264,16 @@ export default {
       _this.dateTo = ''
       _this.dateSelectReadOnly = true
       _this.levelShown = false
-      for (let i = 0; i < types.length; ++i) {
-        _this.typeOptions.push({value: types[i], label: _this.nameMapping[types[i]], key: types[i]})
+      if (_this.displayModeSelected === '垂直廓线显示') {
+        for (let i = 0; i < types.length; ++i) {
+          if (_this.levelShownTypes.indexOf(types[i]) !== -1) {
+            _this.typeOptions.push({value: types[i], label: _this.nameMapping[types[i]], key: types[i]})
+          }
+        }
+      } else {
+        for (let i = 0; i < types.length; ++i) {
+          _this.typeOptions.push({value: types[i], label: _this.nameMapping[types[i]], key: types[i]})
+        }
       }
     },
     singleDateSelectEvent (val) {
@@ -273,6 +291,30 @@ export default {
       // }
       _this.dateRangeSelected = ''
       _this.singleDateSelect = ''
+      // if (_this.displayModeSelected === '垂直廓线显示') {
+      //   _this.sourceSelected = ''
+      //   _this.typeSelected = ''
+      //   _this.tempTypeOptions = _this.typeOptions
+      //   _this.typeOptions = []
+      //   _this.typeOptions = _this.levelShownOptions
+      //   console.log(_this.typeOptions)
+      //   console.log(_this.levelShownOptions)
+      // } else {
+      //   if (_this.typeOptions.length !== 0) {
+      //     _this.typeOptions = _this.tempTypeOptions
+      //   }
+      // }
+      _this.sourceSelected = ''
+      _this.typeOptions = []
+      _this.levelShownOptions = []
+      _this.singleDateSelectPlaceHolder = '请先选择数据来源和类型'
+      _this.singleDateSelect = ''
+      _this.dateRangeSelected = ''
+      _this.typeSelected = ''
+      _this.dateFrom = ''
+      _this.dateTo = ''
+      _this.dateSelectReadOnly = true
+      _this.levelShown = false
     },
     searchForSingleDate () {
       // 主要方法，请求后端数据并在前端展示
@@ -288,7 +330,7 @@ export default {
       if (_this.displayModeSelected === '按时间段显示' && _this.dateRangeSelected === '') {
         complete = false
       }
-      if (_this.levelShown && _this.levelSelected === '') {
+      if (_this.levelShown && _this.levelSelected === '' && _this.displayModeSelected !== '垂直廓线显示') {
         complete = false
       }
       if (!complete) {
@@ -314,7 +356,7 @@ export default {
           timestamp: _this.dateRangeSelected,
           level: _this.levelSelected
         }
-      } else {
+      } else if (_this.displayModeSelected === '按天显示') {
         api = 'data/analysis/fetch-single-date'
         data = {
           lat_range: _this.latSelected,
@@ -323,6 +365,17 @@ export default {
           source: _this.sourceSelected,
           timestamp: _this.singleDateSelect,
           level: _this.levelSelected
+        }
+      } else {
+        // 垂直廓线显示
+        api = 'data/analysis/fetch-level-daily'
+        data = {
+          lat: _this.singleLatSelected,
+          lng: _this.singleLngSelected,
+          type: _this.typeSelected,
+          source: _this.sourceSelected,
+          timestamp: _this.singleDateSelect,
+          level: -1
         }
       }
       console.log(data)
@@ -333,21 +386,33 @@ export default {
           if (_this.displayModeSelected === '按时间段显示') {
             _this.heatmapShown = false
             _this.lineChartShown = true
+            _this.singleDayLineChartShown = false
             _this.clearAllDrawings()
             this.$nextTick(() => {
               this.drawRangeLineChart(successResponse)
               _this.lineChartExist = true
             })
             // this.drawRangeLineChart(successResponse)
-          } else {
+          } else if (_this.displayModeSelected === '按天显示') {
             _this.heatmapShown = true
             _this.lineChartShown = false
+            _this.singleDayLineChartShown = false
             _this.clearAllDrawings()
             this.$nextTick(() => {
               this.drawSingleDayHeatMap(successResponse)
               _this.heatMapExist = true
             })
             // this.drawSingleDayHeatMap(successResponse)
+          } else {
+            // 垂直廓线显示
+            _this.heatmapShown = false
+            _this.lineChartShown = false
+            _this.singleDayLineChartShown = true
+            _this.clearAllDrawings()
+            this.$nextTick(() => {
+              this.drawSingleDayLineChart(successResponse)
+              _this.singleDayLineChartShown = true
+            })
           }
           _this.loading = false
         })
@@ -372,6 +437,11 @@ export default {
         let lChart = this.$echarts.init(document.getElementById('lineChart'))
         lChart.clear()
         _this.lineChartExist = false
+      }
+      if (_this.singleDayLineChartExist) {
+        let lChart = this.$echarts.init(document.getElementById('singleDayLineChart'))
+        lChart.clear()
+        _this.singleDayLineChartExist = false
       }
     },
     drawSingleDayHeatMap (successResponse) {
@@ -539,6 +609,86 @@ export default {
             }
           }
         }
+      })
+    },
+    drawSingleDayLineChart (successResponse) {
+      const data = successResponse.data.values
+      const heights = successResponse.data.heights
+      const valueMinMax = successResponse.data.value_min_max
+      // const heightMinMax = successResponse.data.height_min_max
+      const titleText = successResponse.data.title
+      const unit = successResponse.data.unit
+      const desp = successResponse.data.cn_desp
+      let lChart = this.$echarts.init(document.getElementById('singleDayLineChart'))
+      console.log(heights)
+      console.log(data)
+      // 绘制图表
+      lChart.setOption({
+        title: {
+          text: titleText,
+          left: 'center',
+          top: '5%'
+        },
+        // legend: {
+        //   data: ['Altitude (km) vs. temperature (°C)']
+        // },
+        tooltip: {
+          trigger: 'axis',
+          formatter: desp + '<br/>{b}m : {c}' + unit
+        },
+        toolbox: {
+          show: true,
+          left: '4%',
+          top: '2%',
+          feature: {
+            saveAsImage: {
+              show: true,
+              excludeComponents: ['toolbox'],
+              pixelRatio: 2
+            },
+            dataZoom: {
+              show: true
+            }
+          }
+        },
+        grid: {
+          height: '80%',
+          top: '10%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'value',
+          axisLabel: {
+            formatter: '{value} ' + unit
+          },
+          min: valueMinMax[0],
+          max: valueMinMax[1]
+        },
+        yAxis: {
+          type: 'category',
+          axisLine: { onZero: false },
+          axisLabel: {
+            formatter: '{value} m'
+          },
+          boundaryGap: false,
+          data: heights
+        },
+        series: [
+          {
+            name: titleText,
+            type: 'line',
+            symbolSize: 10,
+            symbol: 'circle',
+            smooth: true,
+            lineStyle: {
+              width: 3,
+              shadowColor: 'rgba(0,0,0,0.3)',
+              shadowBlur: 10,
+              shadowOffsetY: 8
+            },
+            data: data
+          }
+        ]
       })
     },
     dummy () {

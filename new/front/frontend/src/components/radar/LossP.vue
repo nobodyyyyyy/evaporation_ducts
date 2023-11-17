@@ -7,12 +7,12 @@
             <el-breadcrumb separator-class="el-icon-arrow-right" class="breadcrumb-wrapper child">
               <!--          <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>-->
               <el-breadcrumb-item>波导模拟</el-breadcrumb-item>
-              <el-breadcrumb-item>虚警率计算</el-breadcrumb-item>
+              <el-breadcrumb-item>探测概率计算</el-breadcrumb-item>
             </el-breadcrumb>
           </el-col>
         </el-row>
         <el-row class="title-row">
-          <el-col :span="24"><span class="title-text">大气波导传输损耗相关虚警率计算</span></el-col>
+          <el-col :span="24"><span class="title-text">大气波导传输损耗相关探测概率计算</span></el-col>
         </el-row>
       </el-header>
       <el-main>

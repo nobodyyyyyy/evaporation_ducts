@@ -4,16 +4,16 @@ import random
 import numpy as np
 from openpyxl import Workbook
 
-from new.Util.DuctHeightUtil import kelvins2degrees, atmospheric_refractive_index_M, get_duct_height
-from new.Util.EvalUtil import EvalUtil
-from new.Util.MathUtil import MathUtil
-from new.data.DataUtil import DataUtils
-from new.Util.TimeUtil import TimeUtil
-from new.data.batch_sounding_data_process import SoundingDataProcess
-from new.height_model.models.babin import babin_duct_height
-from new.height_model.models.nps import nps_duct_height
-from new.height_model.models.pj2height import pj2height
-from new.height_model.models.sst import evap_duct_SST
+from Util.DuctHeightUtil import kelvins2degrees, atmospheric_refractive_index_M, get_duct_height
+from Util.EvalUtil import EvalUtil
+from Util.MathUtil import MathUtil
+from data.DataUtil import DataUtils
+from Util.TimeUtil import TimeUtil
+from data.batch_sounding_data_process import SoundingDataProcess
+from height_model.models.babin import babin_duct_height
+from height_model.models.nps import nps_duct_height
+from height_model.models.pj2height import pj2height
+from height_model.models.sst import evap_duct_SST
 
 
 class HeightCal:

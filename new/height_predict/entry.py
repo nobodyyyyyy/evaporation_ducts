@@ -12,13 +12,13 @@ from torch import nn
 from torch.utils.data import TensorDataset
 from tqdm import tqdm
 
-from new.Util.MathUtil import MathUtil
-from new.data.DataUtil import DataUtils
-from new.height_predict.dataset import DataSet
-from new.height_predict.eva import Eval
-from new.height_predict.model.HA import HA
-from new.height_predict.model.lstm import RNN, LSTMnetwork, GRU
-from new.height_predict.pso import PSO
+from Util.MathUtil import MathUtil
+from data.DataUtil import DataUtils
+from height_predict.dataset import DataSet
+from height_predict.eva import Eval
+from height_predict.model.HA import HA
+from height_predict.model.lstm import RNN, LSTMnetwork, GRU
+from height_predict.pso import PSO
 
 mod_dir = './saved_model'
 
@@ -47,6 +47,7 @@ class PredictModel:
         'babin': FEATURE_BABIN,
         'liuli': FEATURE_LIULI,
         'pj': FEATURE_PJ,
+        'wei': FEATURE_WEIZHESHELV
     }
 
     MATHS = [MODEL_HA]

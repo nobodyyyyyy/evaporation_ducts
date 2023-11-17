@@ -3,14 +3,14 @@ import re
 
 import numpy as np
 
-from new.Util import DuctHeightUtil
-from new.Util.DrawUtil import DrawUtil
-from new.Util.MathUtil import MathUtil
-from new.data.DataUtil import DataUtils
+from Util import DuctHeightUtil
+from Util.DrawUtil import DrawUtil
+from Util.MathUtil import MathUtil
+from data.DataUtil import DataUtils
 # from data import SP
-from new.height_model.HeightCal import HeightCal
-from new.radar_model import SP
-from new.radar_model import newspe
+from height_model.HeightCal import HeightCal
+# from radar_model import SP
+from radar_model import newspe
 
 
 class RadarCal:

@@ -2,7 +2,7 @@ from cmath import exp, log, atan, sqrt
 
 import numpy as np
 
-from new.Util.MathUtil import MathUtil
+from Util.MathUtil import MathUtil
 
 
 def R_S(t: np.array, p: np.array):

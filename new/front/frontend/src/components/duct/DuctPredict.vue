@@ -59,6 +59,7 @@
               <el-radio v-model="modelSelect" label="babin">byc</el-radio>
               <el-radio v-model="modelSelect" label="pj">pj</el-radio>
               <el-radio v-model="modelSelect" label="liuli">mgb</el-radio>
+              <el-radio v-model="modelSelect" label="wei">wei（伪折射率模型）</el-radio>
             </template>
             <i class="el-icon-info select-icon"></i>
             <span class="hint-text">波导预测的特征值即为所选波导高度计算模型的计算结果</span>
@@ -303,12 +304,14 @@ export default {
             })
             console.log(successResponse.data.table_entry)
             _this.tableData.unshift(successResponse.data.table_entry)
+            loading.close()
           } else if (code === -1) {
             this.$notify({
               title: '结果出错',
               message: successResponse.data.msg,
               type: 'warning'
             })
+            loading.close()
           }
         })
         .catch(failResponse => {
@@ -319,8 +322,8 @@ export default {
             message: '后端出错',
             type: 'error'
           })
+          loading.close()
         })
-      loading.close()
     },
     resetEpoch () {
       let str = this.epoch

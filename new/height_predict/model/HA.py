@@ -1,7 +1,7 @@
 import numpy as np
 
-from new.height_predict.dataset import DataSet
-from new.height_predict.eva import Eval
+from height_predict.dataset import DataSet
+from height_predict.eva import Eval
 
 
 class HA:

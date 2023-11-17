@@ -36,7 +36,7 @@
         <span>波导模拟</span>
       </template>
       <el-menu-item index="LossView">损耗及盲区检测</el-menu-item>
-      <el-menu-item index="LossP">虚警率计算</el-menu-item>
+      <el-menu-item index="LossP">探测概率计算</el-menu-item>
 <!--      实际上是探测概率-->
 <!--      <el-menu-item index="BlindDetection">盲区检测</el-menu-item>-->
     </el-submenu>

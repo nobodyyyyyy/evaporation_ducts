@@ -346,6 +346,11 @@ export default {
           if (_this.displayModeSelected === '按时间段显示') {
             _this.stackedLineChartShown = true
             _this.singleDayLineChartShown = false
+            if (_this.stackedLineChartExist) {
+              let c = this.$echarts.init(document.getElementById('stackedLineChart'))
+              c.clear()
+              _this.stackedLineChartExist = false
+            }
             this.$nextTick(() => {
               this.drawRangeLineChart(successResponse)
               _this.stackedLineChartExist = true
@@ -355,6 +360,11 @@ export default {
             if (_this.singleDateDisplayModeSelected === '单一数据垂直分布') {
               _this.stackedLineChartShown = false
               _this.singleDayLineChartShown = true
+              if (_this.singleDayLineChartExist) {
+                let c = this.$echarts.init(document.getElementById('singleDayLineChart'))
+                c.clear()
+                _this.singleDayLineChartExist = false
+              }
               this.$nextTick(() => {
                 this.drawSingleDayLineChart(successResponse)
                 _this.singleDayLineChartExist = true

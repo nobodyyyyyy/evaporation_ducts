@@ -1,6 +1,6 @@
 import math
 
-from new.Util.MathUtil import MathUtil
+from Util.MathUtil import MathUtil
 
 
 def pj2height(t, rh, to, u, p, z, stable_check=False):

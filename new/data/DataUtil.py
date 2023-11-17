@@ -11,8 +11,8 @@ import pandas as pd
 from numpy import ndarray
 from openpyxl import Workbook
 
-from new.Util import DuctHeightUtil
-from new.Util.TimeUtil import TimeUtil
+from Util import DuctHeightUtil
+from Util.TimeUtil import TimeUtil
 
 
 class DataUtils:
@@ -255,6 +255,7 @@ class DataUtils:
                 ele = round(data[i][j], 2)
                 if ele == np.inf:
                     ele = 0
+                ele = round(ele, 5)
                 ret.append([i, j, ele])
                 if ele != 0.:
                     _max = max(_max, ele)
@@ -273,10 +274,15 @@ class DataUtils:
         time_tmp = pd.date_range(time_s, time_e)
         for e in time_tmp:
             time_axis.append(e.strftime('%Y-%m-%d'))
-        for e in data:
-            if e != 0:
-                _max = max(_max, e)
-                _min = min(_min, e)
+        # for e in data:
+        #     if e != 0:
+        #         _max = max(_max, e)
+        #         _min = min(_min, e)
+        for _ in range(len(data)):
+            if data[_] != 0:
+                _max = max(_max, data[_])
+                _min = min(_min, data[_])
+                data[_] = round(data[_], 5)
         # if int(_min) - 1 != 0:
         #     _min = int(_min) - 1
         # _max = int(_max) + 1
@@ -590,7 +596,7 @@ class DataUtils:
     @staticmethod
     def get_support_data_single_date(year: int, month: int, type_: str, lan_s: float, lan_e: float,
                                      lng_s: float, lng_e: float, time_, level=-1, file_name='',
-                                     file_type=FILE_TYPE_EAR5,):
+                                     file_type=FILE_TYPE_EAR5, all_level=False):
         """
         获取单天的某个再分析资料的热力图数据
         和上面方法高度重复，懒得合并了
@@ -671,13 +677,21 @@ class DataUtils:
 
         elif type_ in ['omega', 'q', 'temp', 'uwind', 'vwind', 'zg', 'w', 't', 'u', 'v', 'z']:
             # data with shape (time, level, latitude, longitude)
-            if level == -1:
-                print('Request level')
-                return None
-            levels = np.array(dataset.variables['level'][:])
-            level_idx = DataUtils.get_idx_for_val_pos(levels, level, is_strict=False)  # todo 大气压是否要严格相等呢？
-            temp = np.ma.filled(dataset.variables[type_][time_idx][level_idx], fill_value=0)
-            val = temp[lat_s_idx: lat_e_idx, lng_s_idx: lng_e_idx]
+            if not all_level:
+                if level == -1:
+                    print('Request level')
+                    return None
+                levels = np.array(dataset.variables['level'][:])
+                level_idx = DataUtils.get_idx_for_val_pos(levels, level, is_strict=False)  # todo 大气压是否要严格相等呢？
+                temp = np.ma.filled(dataset.variables[type_][time_idx][level_idx], fill_value=0)
+                val = temp[lat_s_idx: lat_e_idx, lng_s_idx: lng_e_idx]
+            else:
+                # 特殊逻辑，需求变更，，
+                # 拿一天的有高度 level 限制的垂直廓线
+                levels = np.array(dataset.variables['level'][:])
+                temp = np.ma.filled(dataset.variables[type_][time_idx][:], fill_value=0)
+                val = temp[:, lat_s_idx, lng_s_idx]
+                return levels.tolist(), val.tolist()
         else:
             print('get_support_data_single_date... type_ is not supported')
             return None

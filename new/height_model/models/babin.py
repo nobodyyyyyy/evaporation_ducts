@@ -1,6 +1,6 @@
 from cmath import exp, log, sqrt
 
-from new.Util.DuctHeightUtil import qsee, R_S, psiu_25, psit_25, fait
+from Util.DuctHeightUtil import qsee, R_S, psiu_25, psit_25, fait
 
 # 入口参数设定
 

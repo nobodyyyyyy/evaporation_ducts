@@ -1,6 +1,6 @@
 import numpy as np
 
-from new.Util.MathUtil import MathUtil
+from Util.MathUtil import MathUtil
 
 
 class Eval:
