@@ -102,6 +102,11 @@
               range-separator="至"
               start-placeholder="开始日期"
               end-placeholder="结束日期"/>
+            <el-radio-group
+              v-show="sourceSelected === '新一代数值系统' && displayModeSelected === '按天显示'"
+              v-model="clockModeSelected" size="medium" :disabled=dateSelectReadOnly style="margin-left: 10px">
+              <el-radio-button v-for="mode in clockModes" :label="mode" :key="mode"/>
+            </el-radio-group>
           </div>
           <div class="search-row" style="display: flex; margin-top: 8px">
             <span class="search-text" v-show="displayModeSelected === '按天显示'">纬度区间</span>
@@ -109,10 +114,10 @@
             <span class="latlng-hint-text">南纬90°</span>
             <template>
               <div class="latlng_slider" v-show="displayModeSelected === '按天显示'">
-                <el-slider v-model="latSelected" range :max="90" :min="-90"></el-slider>
+                <el-slider v-model="latSelected" range :max="lat_max" :min="lat_min"></el-slider>
               </div>
               <div class="latlng_slider" v-show="displayModeSelected !== '按天显示'">
-                <el-slider v-model="singleLatSelected" :max="90" :min="-90"></el-slider>
+                <el-slider v-model="singleLatSelected" :max="lat_max" :min="lat_min"></el-slider>
               </div>
             </template>
             <span class="latlng-hint-text">北纬90°</span>
@@ -123,10 +128,10 @@
             <span class="latlng-hint-text">西经180°</span>
             <template>
               <div class="latlng_slider" v-show="displayModeSelected === '按天显示'">
-                <el-slider v-model="lngSelected" range :max="180" :min="-180"></el-slider>
+                <el-slider v-model="lngSelected" range :max="lng_max" :min="lng_min"></el-slider>
               </div>
               <div class="latlng_slider single" v-show="displayModeSelected !== '按天显示'">
-                <el-slider v-model="singleLngSelected" :max="180" :min="-180"></el-slider>
+                <el-slider v-model="singleLngSelected" :max="lng_max" :min="lng_min"></el-slider>
               </div>
             </template>
             <span class="latlng-hint-text">东经180°</span>
@@ -163,6 +168,8 @@ export default {
       sourceSelected: '',
       displayModes: ['按天显示', '按时间段显示', '垂直廓线显示'],
       displayModeSelected: '按天显示',
+      clockModes: ['00:00', '12:00'],
+      clockModeSelected: '00:00',
       singleDateSelect: '',
       dateSelectPlaceHolder: '请先选择数据来源和类型',
       dateSelectReadOnly: true,
@@ -194,7 +201,12 @@ export default {
       lineChartExist: false,
       // 垂直廓线显示
       singleDayLineChartShown: false,
-      singleDayLineChartExist: false
+      singleDayLineChartExist: false,
+      // 经纬度选择条条
+      lat_min: -90,
+      lat_max: 90,
+      lng_min: -180,
+      lng_max: 180
     }
   },
   mounted () {
@@ -249,6 +261,18 @@ export default {
       _this.singleDateSelect = ''
       _this.dateRangeSelected = ''
       _this.levelShown = _this.levelShownTypes.indexOf(val) !== -1
+      if (val === '新一代数值系统') {
+        // todo 真搞不明白，不搞了
+        _this.lat_min = -90
+        _this.lat_max = 90
+        _this.lng_min = -180
+        _this.lng_max = 180
+      } else {
+        _this.lat_min = -90
+        _this.lat_max = 90
+        _this.lng_min = -180
+        _this.lng_max = 180
+      }
     },
     sourceSelectedChangeEvent (val) {
       // 数据来源选择更变
@@ -321,16 +345,30 @@ export default {
       const _this = this
       // 检查数据是否选择完全
       let complete = true
+      if (_this.sourceSelected === '新一代数值系统' && _this.displayModeSelected === '垂直廓线显示') {
+        this.$message({
+          showClose: true,
+          message: '新一代数值系统没有支持垂直廓线展示的数据',
+          type: 'error'
+        })
+        return
+      }
       if (_this.typeSelected === '' || _this.sourceSelected === '') {
         complete = false
       }
       if (_this.displayModeSelected === '按天显示' && _this.singleDateSelect === '') {
         complete = false
       }
+      if (_this.displayModeSelected === '垂直廓线显示' && _this.singleDateSelect === '') {
+        complete = false
+      }
       if (_this.displayModeSelected === '按时间段显示' && _this.dateRangeSelected === '') {
         complete = false
       }
       if (_this.levelShown && _this.levelSelected === '' && _this.displayModeSelected !== '垂直廓线显示') {
+        complete = false
+      }
+      if (_this.clockModeSelected === '' && _this.sourceSelected === '新一代数值系统' && _this.displayModeSelected === '按天显示') {
         complete = false
       }
       if (!complete) {
@@ -364,7 +402,8 @@ export default {
           type: _this.typeSelected,
           source: _this.sourceSelected,
           timestamp: _this.singleDateSelect,
-          level: _this.levelSelected
+          level: _this.levelSelected,
+          clock: _this.clockModeSelected
         }
       } else {
         // 垂直廓线显示
@@ -552,6 +591,7 @@ export default {
       const max = successResponse.data.max_value
       const min = successResponse.data.min_value
       const titleText = successResponse.data.title
+      const unit = successResponse.data.unit
       // 测试
       // 基于刚刚准备好的 DOM 容器，初始化 EChart 实例
       let lChart = this.$echarts.init(document.getElementById('lineChart'))
@@ -566,12 +606,12 @@ export default {
         },
         xAxis: {
           type: 'category',
-          name: '经度',
+          name: '时间',
           data: axis
         },
         yAxis: {
           type: 'value',
-          name: '纬度',
+          name: unit,
           min: min,
           max: max
         },
@@ -596,7 +636,7 @@ export default {
         },
         toolbox: {
           show: true,
-          left: '4%',
+          left: '2%',
           top: '2%',
           feature: {
             saveAsImage: {

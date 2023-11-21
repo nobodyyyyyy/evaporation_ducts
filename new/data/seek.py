@@ -1,18 +1,24 @@
 import netCDF4 as nc
 import numpy as np
 
-from new.Util.TimeUtil import TimeUtil
+from Util.TimeUtil import TimeUtil
+from data.DataUtil import DataUtils
 
 if __name__ == '__main__':
 
-    file = 'G:\\NCEP\\hgt\\hgt.2020.daily.nc'
+    file = 'G:\\Woof\\atmospheric\\code\\evaporation_ducts\\new\\data\\NewGen\\ncdata\\GG_nhgsmout_2021-01-09_00_00_00.nc'
     dataset = nc.Dataset(file)
     all_vars = dataset.variables.keys()
 
     all_vars_info = dataset.variables.items()
     all_vars_info = list(all_vars_info)
+    a = np.array(dataset['g0_lon_1'])  # 72.5 ~ 135
+    b = np.array(dataset['g0_lat_0'])  # 1.25 ~ 56.25
 
-    pass
+    y, x, ret = DataUtils.get_support_new_gen_data_single_date(type_='U10', lan_s=30, lan_e=100, lng_s=10, lng_e=100, file_name=file)
+
+    print(0)
+    # 新一代数值系统
 
      # ref Impact_height Bend_ang
 

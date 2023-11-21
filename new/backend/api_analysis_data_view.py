@@ -24,10 +24,12 @@ API_GET_LEVEL_DATA_DAILY = prefix + '/fetch-level-daily'
 # 单例列表
 modules = SupportedSingletons()
 
-mapping_eng = ['omega', 'q', 'skt', 'slp', 'sst', 'temp', 'u10m', 'uwind', 'v10m', 'vwind', 'zg']
-mapping_cn = ['垂直速度', '比湿度', '地表温度', '平均海平面气压', '海平面温度', '温度', '10米U风分量', 'U风',
-              '10米V风分量', 'V风', '重力加速度']
-units = ['m/s', 'kg/kg', 'K', 'KPa', 'K', 'K', 'm/s', 'm/s', 'm/s', 'm/s', 'm2/s2']
+mapping_eng = ['omega', 'q', 'skt', 'slp', 'sst', 'temp', 'u10m', 'uwind', 'v10m', 'vwind', 'zg',
+               'Z', 'U10', 'V10', 'MSL', 'T2', 'w2']
+mapping_cn = ['垂直速度', '比湿度', '地表温度', '平均海平面气压', '海平面温度', '温度', '10米U风分量', 'U风', '10米V风分量', 'V风', '重力加速度',
+              '重力加速度', '10米U风分量', '10米V风分量', '平均海面压强', '2米海温', '2米比湿度']
+units = ['m/s', 'kg/kg', 'K', 'KPa', 'K', 'K', 'm/s', 'm/s', 'm/s', 'm/s', 'm2/s2',
+         'm2/s2', 'm/s', 'm/s', 'KPa', 'K', 'kg/kg']
 mapping_eng_to_cn = {}
 unit_mapping = {}
 for _ in range(len(mapping_eng)):
@@ -78,6 +80,17 @@ def init_info():
                 'v10m': {'desp': '10米V风分量', 'date_from': '2020-01-01', 'date_to': '2020-12-31'},
                 'vwind': {'desp': 'V风', 'date_from': '2020-01-01', 'date_to': '2020-12-31'},
                 'zg': {'desp': '重力加速度', 'date_from': '2020-01-01', 'date_to': '2020-12-31'},
+            },
+            {
+                'source': '新一代数值系统',
+                'types': ['Z', 'U10', 'V10', 'MSL', 'T2', 'w2'],
+                'Z': {'desp': '重力加速度', 'date_from': '2021-01-01', 'date_to': '2021-12-31'},
+                'U10': {'desp': '10米U风分量', 'date_from': '2021-01-01', 'date_to': '2021-12-31'},
+                'V10': {'desp': '10米V风分量', 'date_from': '2021-01-01', 'date_to': '2021-12-31'},
+                'MSL': {'desp': '平均海面压强', 'date_from': '2021-01-01', 'date_to': '2021-12-31'},
+                # 'T2': {'desp': '2米气温', 'date_from': '2021-01-01', 'date_to': '2021-12-31'},
+                'w2': {'desp': '2米湿度', 'date_from': '2021-01-01', 'date_to': '2021-12-31'},
+                'T2': {'desp': '2米海温', 'date_from': '2021-01-01', 'date_to': '2021-12-31'},  # 需求更变。
             }
         ]
     })
@@ -94,37 +107,53 @@ def get_single_date_data():
     source_name = data['source']
     source = modules.dataUtil.get_source_display(data['source'])
     timestamp = data['timestamp'] / 1000
-    file_name = modules.dataUtil.get_nc_file_address(source, timestamp, type_, prefix=_prefix)
+    clock = data['clock']
+    file_name = modules.dataUtil.get_nc_file_address(source, timestamp, type_, prefix=_prefix, clock=clock)
     level = data['level']
     dt = TimeUtil.timestamp_to_datetime(timestamp)
     y, m, d = TimeUtil.format_date_to_year_month_day(str(dt))
+    if source == modules.dataUtil.FILE_TYPE_NEW_GEN:
+        lats, lngs, ret_data = modules.dataUtil.get_support_new_gen_data_single_date(type_=type_, lan_s=lat_range[0], lan_e=lat_range[1],
+                                                                                     lng_s=lng_range[0], lng_e=lng_range[1], file_name=file_name)
+        data, _max, _min = modules.dataUtil.gen_data_response_4_heatmap(ret_data.tolist())
+        title = f'{source_name}-{mapping_eng_to_cn[type_]}'
+        title += f'-{str(dt)}-{clock}-纬度区间[{lats[0]}~{lats[-1]}]-经度区间[{lngs[0]}-{lngs[-1]}]'
+        return json.dumps({
+            'code': 0,
+            'lat': lats.tolist(),
+            'lng': lngs.tolist(),
+            'data': data,
+            'min_value': _min,
+            'max_value': _max,
+            'title': title
+        })
+    else:
+        ret = modules.dataUtil.get_support_data_single_date(year=y, month=m, type_=type_,
+                                                            lan_s=lat_range[0], lan_e=lat_range[1],
+                                                            lng_s=lng_range[0], lng_e=lng_range[1],
+                                                            time_=timestamp, level=level,
+                                                            file_name=file_name,
+                                                            file_type=source)
+        data, _max, _min = modules.dataUtil.gen_data_response_4_heatmap(ret.tolist())
 
-    ret = modules.dataUtil.get_support_data_single_date(year=y, month=m, type_=type_,
-                                                        lan_s=lat_range[0], lan_e=lat_range[1],
-                                                        lng_s=lng_range[0], lng_e=lng_range[1],
-                                                        time_=timestamp, level=level,
-                                                        file_name=file_name,
-                                                        file_type=source)
-    data, _max, _min = modules.dataUtil.gen_data_response_4_heatmap(ret.tolist())
+        # _min = math.floor(_min)
+        # _max = math.ceil(_max)
+        _min = round(_min, 2)
+        _max = round(_max, 2)
 
-    # _min = math.floor(_min)
-    # _max = math.ceil(_max)
-    _min = round(_min, 2)
-    _max = round(_max, 2)
-
-    title = f'{source_name}-{mapping_eng_to_cn[type_]}'
-    if level != '':
-        title += f'-level{level}'
-    title += f'-{str(dt)}-纬度区间[{lat_range[0]}~{lat_range[1]}]-经度区间[{lng_range[0]}-{lng_range[1]}]'
-    return json.dumps({
-        'code': 0,
-        'lat': modules.dataUtil.fill_lat_lng(lat_range[0], lat_range[1]),
-        'lng': modules.dataUtil.fill_lat_lng(lng_range[0], lng_range[1]),
-        'data': data,
-        'min_value': _min,
-        'max_value': _max,
-        'title': title
-    })
+        title = f'{source_name}-{mapping_eng_to_cn[type_]}'
+        if level != '':
+            title += f'-level{level}'
+        title += f'-{str(dt)}-纬度区间[{lat_range[0]}~{lat_range[1]}]-经度区间[{lng_range[0]}-{lng_range[1]}]'
+        return json.dumps({
+            'code': 0,
+            'lat': modules.dataUtil.fill_lat_lng(lat_range[0], lat_range[1]),
+            'lng': modules.dataUtil.fill_lat_lng(lng_range[0], lng_range[1]),
+            'data': data,
+            'min_value': _min,
+            'max_value': _max,
+            'title': title
+        })
 
 
 @data_view_api.route(API_GET_RANGE_DATA, methods=['POST', 'GET'])
@@ -145,20 +174,27 @@ def get_range_data():
     dt_e = str(TimeUtil.timestamp_to_datetime(timestamp_e))
     y_s, m_s, d_s = TimeUtil.format_date_to_year_month_day(dt_s)
     y_e, m_e, d_e = TimeUtil.format_date_to_year_month_day(dt_e)
-    ret = modules.dataUtil.get_support_data_range(year_start=y_s, month_start=m_s,
-                                                  year_end=y_e, month_end=m_e, type_=type_, lan=lat,
-                                                  lng=lng, time_start=timestamp_s, time_end=timestamp_e, level=level,
-                                                  file_arr=file_arr, file_type=source)
-    axis, ret, _max, _min = modules.dataUtil.gen_data_response_4_linechart(ret, dt_s, dt_e)
 
-    # _min = math.floor(_min)
-    # _max = math.ceil(_max)
-    _min = round(_min, 2)
-    _max = round(_max, 2)
+    if source == modules.dataUtil.FILE_TYPE_NEW_GEN:
+        real_lat, real_lng, ret = modules.dataUtil.get_support_new_gen_data_range(type_=type_, lan=lat, lng=lng, file_arr=file_arr)
+        axis, ret, _max, _min = modules.dataUtil.gen_data_response_4_linechart(ret, dt_s, dt_e, split_day=True)
+        lat = real_lat
+        lng = real_lng
+    else:
+        ret = modules.dataUtil.get_support_data_range(year_start=y_s, month_start=m_s,
+                                                      year_end=y_e, month_end=m_e, type_=type_, lan=lat,
+                                                      lng=lng, time_start=timestamp_s, time_end=timestamp_e, level=level,
+                                                      file_arr=file_arr, file_type=source)
+        axis, ret, _max, _min = modules.dataUtil.gen_data_response_4_linechart(ret, dt_s, dt_e, split_day=False)
     title = f'{source_name}-{mapping_eng_to_cn[type_]}'
     if level != '':
         title += f'-level{level}'
     title += f'-纬度[{lat}]-经度[{lng}]-时间范围[{dt_s} - {dt_e}]'
+    # _min = math.floor(_min)
+    # _max = math.ceil(_max)
+    _min = round(_min, 2)
+    _max = round(_max, 2)
+
     return json.dumps({
         'code': 0,
         'time_axis': axis,

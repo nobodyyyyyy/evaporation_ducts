@@ -13,6 +13,7 @@ sys.path.append('./Util')
 
 from flask import Flask
 from flask_cors import *
+from gevent import pywsgi
 
 from backend.api_analysis_data_view import data_view_api
 from backend.api_duct_height import duct_height_api
@@ -47,9 +48,13 @@ def fallback(fallback):  # Vue Router 的 mode 为 'hash' 时可移除该方法
     else:
         return app.send_static_file('index.html')
 
-#
-# app.run(host="0.0.0.0", debug=True)
-
 
 if __name__ == '__main__':
+    print('处理中……')
+
+    # server = pywsgi.WSGIServer(('127.0.0.1', 5000), app)
+    # print('请在浏览器中输入网址: http://localhost:5000/login')
+    # server.serve_forever()
+
     app.run(host="0.0.0.0", debug=True)
+

@@ -3,7 +3,7 @@ import os
 import re
 import time
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import netCDF4 as nc
@@ -22,6 +22,7 @@ class DataUtils:
     FILE_TYPE_NOAA = 1
     FILE_TYPE_EAR5 = 2
     FILE_TYPE_EAR5_2021_ODD = 3
+    FILE_TYPE_NEW_GEN = 4
 
     class Station:
 
@@ -68,6 +69,8 @@ class DataUtils:
             return DataUtils.FILE_TYPE_EAR5_2021_ODD
         elif source_str == 'EAR5':
             return DataUtils.FILE_TYPE_EAR5
+        elif source_str == '新一代数值系统':
+            return DataUtils.FILE_TYPE_NEW_GEN
         else:
             return -1
 
@@ -135,7 +138,7 @@ class DataUtils:
         return ret_files, ret_dates
 
     @staticmethod
-    def get_nc_file_address(source_code, timestamp, type_name, prefix="."):
+    def get_nc_file_address(source_code, timestamp, type_name, prefix=".", clock=""):
         if type(source_code) is str:
             source_code = DataUtils.get_source_display(source_code)
         if source_code == -1:
@@ -146,11 +149,15 @@ class DataUtils:
         y, m, d = TimeUtil.format_date_to_year_month_day(str(dt))
         _year = str(y)
         _month = TimeUtil.format_month_or_day(m)
+        _day = TimeUtil.format_month_or_day(d)
 
         if source_code == DataUtils.FILE_TYPE_NOAA:
             ret = f'{prefix}/AEM/{type_name}.{_year}-01.daily.nc'
         elif source_code == DataUtils.FILE_TYPE_EAR5:
             ret = f'{prefix}/ERA5_daily/{type_name}/{type_name}.{_year}-{_month}.daily.nc'
+        elif source_code == DataUtils.FILE_TYPE_NEW_GEN:
+            _time = clock.split(':')[0]
+            ret = f'{prefix}/NewGen/ncdata/GG_nhgsmout_{_year}-{_month}-{_day}_{_time}_00_00.nc'
         # todo 2021 odd EAR5
         return ret
 
@@ -187,7 +194,16 @@ class DataUtils:
         elif source_code == DataUtils.FILE_TYPE_EAR5:
             for m in range(m_s, m_e + 1):
                 ret.append(f'{prefix}/ERA5_daily/{type_name}/{type_name}.{year_s}-{TimeUtil.format_month_or_day(m)}.daily.nc')
-
+        elif source_code == DataUtils.FILE_TYPE_NEW_GEN:
+            start = datetime.strptime(str(dt_s), "%Y-%m-%d")
+            end = datetime.strptime(str(dt_e), "%Y-%m-%d")
+            while start <= end:
+                _year = start.year
+                _month = TimeUtil.format_month_or_day(start.month)
+                _day = TimeUtil.format_month_or_day(start.day)
+                ret.append(f'{prefix}/NewGen/ncdata/GG_nhgsmout_{_year}-{_month}-{_day}_00_00_00.nc')
+                ret.append(f'{prefix}/NewGen/ncdata/GG_nhgsmout_{_year}-{_month}-{_day}_12_00_00.nc')
+                start += timedelta(days=1)
         # todo 2021 odd EAR5
         return ret
 
@@ -263,7 +279,7 @@ class DataUtils:
         return ret, _max, _min
 
     @staticmethod
-    def gen_data_response_4_linechart(data, time_s, time_e):
+    def gen_data_response_4_linechart(data, time_s, time_e, split_day=False):
         """
         根据 echarts 的折线图要求生成对应回包【再分析数据】
         :return:
@@ -273,7 +289,11 @@ class DataUtils:
         _max = 0
         time_tmp = pd.date_range(time_s, time_e)
         for e in time_tmp:
-            time_axis.append(e.strftime('%Y-%m-%d'))
+            if split_day:
+                time_axis.append(e.strftime('%Y-%m-%d') + '-00:00')
+                time_axis.append(e.strftime('%Y-%m-%d') + '-12:00')
+            else:
+                time_axis.append(e.strftime('%Y-%m-%d'))
         # for e in data:
         #     if e != 0:
         #         _max = max(_max, e)
@@ -798,6 +818,78 @@ class DataUtils:
                 return None
 
         return ret
+
+    @staticmethod
+    def get_support_new_gen_data_single_date(type_: str, lan_s: float, lan_e: float,
+                                             lng_s: float, lng_e: float, file_name=''):
+        """
+        获取单天的某个再分析资料的热力图数据
+        与上面不同的是，这个是 newgen data，处理流程都不一样o
+        :return:
+        """
+        file = file_name
+        inst = DataUtils()
+        if DataUtils.get_file_name(file) not in inst.nc_dataset_cache.keys():
+            dataset = nc.Dataset(file)
+            inst.nc_dataset_cache[DataUtils.get_file_name(file)] = dataset
+        else:
+            dataset = inst.nc_dataset_cache[DataUtils.get_file_name(file)]
+        if dataset is None:
+            print('get_support_new_gen_data_single_date... Could not load dataset for file: {}'.format(file))
+            return -999
+
+        lats = np.array(dataset.variables['g0_lat_0'][:])
+        lngs = np.array(dataset.variables['g0_lon_1'][:])
+        # find corresponding idx for lan, lng
+        lat_s_idx = DataUtils.get_idx_for_val_pos(lats, lan_s)
+        lng_s_idx = DataUtils.get_idx_for_val_pos(lngs, lng_s)
+        lat_e_idx = DataUtils.get_idx_for_val_pos(lats, lan_e)
+        lng_e_idx = DataUtils.get_idx_for_val_pos(lngs, lng_e)
+        if type_ not in ['Z', 'g0_lat_0', 'g0_lon_1', 'U10', 'V10', 'MSL', 'T2', 'w2']:
+            print('get_support_new_gen_data_single_date... Type is not supported [{}]'.format(type_))
+            return -999
+
+        temp = np.ma.filled(dataset.variables[type_], fill_value=0)
+        val = temp[lat_s_idx: lat_e_idx + 1, lng_s_idx: lng_e_idx + 1]
+        return lats[lat_s_idx: lat_e_idx + 1], lngs[lng_s_idx: lng_e_idx + 1], val
+
+
+    @staticmethod
+    def get_support_new_gen_data_range(type_: str, lan: float, lng: float, file_arr=None):
+        """
+        获取时间段内【其实文件已经预先存在 file_arr 中了】的某个再分析资料的折线图数据
+        和上面方法高度重复，懒得合并了
+        [果然，一旦有冗余的代码，只会越来越多]
+        :return:
+        """
+        ret = []
+        inst = DataUtils()
+        if type_ not in ['Z', 'g0_lat_0', 'g0_lon_1', 'U10', 'V10', 'MSL', 'T2', 'w2']:
+            print('get_support_new_gen_data_range... Type is not supported [{}]'.format(type_))
+            return -999
+        real_lat = lan
+        real_lng = lng
+        for file_idx in range(0, len(file_arr)):
+            file = file_arr[file_idx]
+            if DataUtils.get_file_name(file) not in inst.nc_dataset_cache.keys():
+                dataset = nc.Dataset(file)
+                inst.nc_dataset_cache[DataUtils.get_file_name(file)] = dataset
+            else:
+                dataset = inst.nc_dataset_cache[DataUtils.get_file_name(file)]
+            if dataset is None:
+                print('get_support_new_gen_data_range... Could not load dataset for file: {}'.format(file))
+                return -999
+            lats = np.array(dataset.variables['g0_lat_0'][:])
+            lngs = np.array(dataset.variables['g0_lon_1'][:])
+            lat_idx = DataUtils.get_idx_for_val_pos(lats, lan)
+            lng_idx = DataUtils.get_idx_for_val_pos(lngs, lng)
+            temp = np.ma.filled(dataset.variables[type_], fill_value=0)
+            val = temp[lat_idx, lng_idx]
+            real_lat = lats[lat_idx]
+            real_lng = lngs[lng_idx]
+            ret.append(float(val))
+        return real_lat, real_lng, ret
+
 
     @staticmethod
     def generate_ref_and_h(data, axis=None):
